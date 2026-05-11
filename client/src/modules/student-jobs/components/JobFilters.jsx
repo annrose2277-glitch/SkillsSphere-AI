@@ -63,7 +63,11 @@ const JobFilters = ({ onFilterChange }) => {
       maxSalary: "",
       postedWithin: "",
     });
+    // Reset salary validation state when clearing filters
+    setSalaryError("");
   };
+  // Check whether any job filters are currently active
+  const hasActiveFilters = filters.designation || filters.minSalary || filters.maxSalary || filters.postedWithin;
 
   const dateOptions = [
     { value: "", label: "Anytime" },
@@ -81,7 +85,12 @@ const JobFilters = ({ onFilterChange }) => {
         </h2>
         <button
           onClick={handleClear}
-          className="text-xs font-medium text-gray-500 dark:text-slate-400 hover:text-gray-900 dark:hover:text-white transition-colors flex items-center gap-1"
+          disabled={!hasActiveFilters}
+          className={`text-xs font-medium flex items-center gap-1 transition-colors ${
+            hasActiveFilters 
+            ? "text-slate-400 hover:text-white cursor-pointer" 
+            : "text-slate-600 cursor-not-allowed opacity-50"
+          }`}
         >
           <X size={14} />
           Clear All
