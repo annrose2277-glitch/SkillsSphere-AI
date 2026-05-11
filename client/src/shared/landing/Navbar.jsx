@@ -11,7 +11,6 @@ const Navbar = () => {
   const navigate = useNavigate();
   
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [theme, setTheme] = useState(() => {
     if (typeof window === 'undefined') return 'dark';
@@ -68,8 +67,8 @@ const Navbar = () => {
   return (
     <nav className={`fixed top-0 left-0 w-full z-[1000] transition-all duration-300
       ${scrolled
-        ? 'py-4 bg-[var(--nav-bg)] backdrop-blur-xl border-b border-[var(--border)] shadow-[var(--shadow-soft)]'
-        : 'py-6 bg-transparent'
+        ? 'py-4 bg-[var(--nav-bg)] backdrop-blur-xl border-b border-[var(--border)] shadow-[0_8px_24px_rgba(0,0,0,0.12)]'
+        : 'py-6 bg-transparent border-b border-transparent'
       }
       ${isMenuOpen ? '' : ''}
       max-sm:py-3`}>
@@ -80,8 +79,8 @@ const Navbar = () => {
         </Link>
 
         {/* Desktop Navigation */}
-        <div className="hidden lg:flex gap-10">
-          {navLinks.map((link) => (
+        <div className="hidden lg:flex gap-10 items-center">
+          {navLinks.filter(link => link.name !== 'Dashboard').map((link) => (
             <Link
               key={link.path}
               to={link.path}
@@ -99,7 +98,7 @@ const Navbar = () => {
           ))}
         </div>
 
-        <div className="hidden lg:flex gap-5 items-center relative">
+        <div className="hidden lg:flex gap-5 items-center">
           <button
             type="button"
             onClick={toggleTheme}
