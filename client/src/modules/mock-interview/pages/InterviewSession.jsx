@@ -127,7 +127,7 @@ const InterviewSession = () => {
 
     try {
       await completeInterview(sessionId);
-      navigate(`/mock-interview/${sessionId}/results`);
+      navigate(`/mock-interview/${sessionId}/results`, { replace: true });
     } catch (err) {
       setError(err.message || "Failed to complete interview.");
       console.error("[InterviewSession] Complete error:", err);

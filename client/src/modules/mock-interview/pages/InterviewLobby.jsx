@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import CameraCheck from "../components/CameraCheck";
 import PersonaSelector from "../components/PersonaSelector";
 import Button from "../../../shared/components/Button";
 import Select from "../../../shared/components/Select";
@@ -16,7 +15,6 @@ const DIFFICULTY_LEVELS = [
 
 const InterviewLobby = () => {
   const navigate = useNavigate();
-  const [isMediaReady, setIsMediaReady] = useState(false);
   const [selectedPersona, setSelectedPersona] = useState("friendly");
   const [topic, setTopic] = useState("");
   const [difficulty, setDifficulty] = useState("medium");
@@ -53,7 +51,7 @@ const InterviewLobby = () => {
       const res = await startSession(topic, difficulty);
       const sessionId = res.data?.sessionId;
       if (sessionId) {
-        navigate(`/mock-interview/${sessionId}`);
+        navigate(`/mock-interview/${sessionId}`, { replace: true });
       }
     } catch (err) {
       setError(err.message || "Failed to start interview. Please try again.");
@@ -65,7 +63,7 @@ const InterviewLobby = () => {
 
   const topicOptions = topics.map((t) => ({
     value: t.topic,
-    label: `${t.topic.charAt(0).toUpperCase() + t.topic.slice(1)} (${t.questionCount} questions)`,
+    label: `${t.topic.charAt(0).toUpperCase() + t.topic.slice(1)} (${t.questionCount} in bank)`,
   }));
 
   return (
@@ -86,8 +84,6 @@ const InterviewLobby = () => {
 
       <div className="lobby-grid">
         <div className="lobby-column">
-          <CameraCheck onStreamReady={setIsMediaReady} />
-          
           <div className="setup-card">
             <h3 className="setup-card-title">
               <GraduationCap className="text-indigo-500" /> Focus Area
@@ -114,6 +110,9 @@ const InterviewLobby = () => {
                 />
               </div>
             </div>
+            <p className="field-label" style={{ marginTop: "0.5rem", fontWeight: 500, textTransform: "none", letterSpacing: "normal" }}>
+              Each session picks 5 random questions from the selected difficulty.
+            </p>
           </div>
         </div>
 
@@ -128,7 +127,7 @@ const InterviewLobby = () => {
               variant="primary"
               size="lg"
               className="start-button"
-              disabled={!isMediaReady || starting || loading}
+              disabled={starting || loading}
               onClick={handleStartInterview}
             >
               {starting ? (
@@ -150,11 +149,7 @@ const InterviewLobby = () => {
             </button>
           </div>
 
-          {!isMediaReady && (
-            <p className="media-warning">
-              Please enable Camera & Microphone to proceed
-            </p>
-          )}
+
         </div>
       </div>
     </div>

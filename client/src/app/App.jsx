@@ -25,6 +25,9 @@ import MyApplicationsPage from "../modules/student-jobs/pages/MyApplicationsPage
 import ClassroomsDashboard from "../modules/classrooms/pages/ClassroomsDashboard";
 import ClassroomRoom from "../modules/classrooms/pages/ClassroomRoom";
 import InterviewLobby from "../modules/mock-interview/pages/InterviewLobby";
+import InterviewSession from "../modules/mock-interview/pages/InterviewSession";
+import InterviewResults from "../modules/mock-interview/pages/InterviewResults";
+import InterviewHistory from "../modules/mock-interview/pages/InterviewHistory";
 import ProtectedRoute from "../shared/components/ProtectedRoute";
 import ThemeToggle from "../shared/components/ThemeToggle";
 import SocketNotificationListener from "../shared/components/SocketNotificationListener";
@@ -157,6 +160,30 @@ function App() {
           element={
             <ProtectedRoute requiredRole="student">
               <InterviewLobby />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/mock-interview/history"
+          element={
+            <ProtectedRoute requiredRole="student">
+              <InterviewHistory />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/mock-interview/:id"
+          element={
+            <ProtectedRoute requiredRole="student">
+              <InterviewSession />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/mock-interview/:id/results"
+          element={
+            <ProtectedRoute requiredRole="student">
+              <InterviewResults />
             </ProtectedRoute>
           }
         />
