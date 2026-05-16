@@ -1,52 +1,44 @@
-import OpenAI from 'openai';
-import dotenv from 'dotenv';
-dotenv.config();
-
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
-
 /**
- * Generates a strategic comparison between two resume versions.
+ * Generates deterministic strategic insights by comparing two resume versions.
+ * No LLM/AI required - follows rule-based logic.
  */
 export const generateComparisonInsights = async (v1, v2) => {
-  if (!process.env.OPENAI_API_KEY) {
-    return "AI-powered strategic insights are currently unavailable (missing API key). However, structural improvements in skills and gaps are visible in the diff below.";
+  const scoreDiff = v2.score - v1.score;
+  const oldSkills = new Set(v1.skills || []);
+  const newSkills = new Set(v2.skills || []);
+  const addedSkills = [...newSkills].filter(s => !oldSkills.has(s));
+  
+  const oldGaps = new Set(v1.missingSkills || []);
+  const newGaps = new Set(v2.missingSkills || []);
+  const resolvedGaps = [...oldGaps].filter(s => !newGaps.has(s));
+
+  let insights = [];
+
+  // 1. Score-based insights
+  if (scoreDiff > 10) {
+    insights.push(`Your score improved significantly by ${scoreDiff}%, showing a strong leap in professional alignment.`);
+  } else if (scoreDiff > 0) {
+    insights.push(`Your score increased by ${scoreDiff}%, indicating steady progress in your profile quality.`);
+  } else if (scoreDiff < 0) {
+    insights.push(`Your latest score is slightly lower (${scoreDiff}%). This often happens when broad skills are added before they are specialized.`);
   }
 
-  const prompt = `
-    Compare these two resume analysis versions and provide a strategic career growth summary.
-    
-    Version 1 (Older):
-    - Score: ${v1.score}%
-    - Classification: ${v1.classification}
-    - Skills: ${v1.skills?.join(', ') || 'N/A'}
-    - Missing Skills: ${v1.missingSkills?.join(', ') || 'N/A'}
-    
-    Version 2 (Newer):
-    - Score: ${v2.score}%
-    - Classification: ${v2.classification}
-    - Skills: ${v2.skills?.join(', ') || 'N/A'}
-    - Missing Skills: ${v2.missingSkills?.join(', ') || 'N/A'}
-    
-    Provide a concise (3-4 sentence) strategic summary of the evolution. 
-    Focus on which additions were most impactful and what the student should prioritize next.
-    Keep the tone professional and encouraging.
-  `;
-
-  try {
-    const response = await openai.chat.completions.create({
-      model: "gpt-3.5-turbo",
-      messages: [
-        { role: "system", content: "You are an expert career coach and technical recruiter." },
-        { role: "user", content: prompt }
-      ],
-      max_tokens: 200,
-    });
-
-    return response.choices[0].message.content;
-  } catch (error) {
-    console.error("AI Comparison Error:", error);
-    return "Unable to generate AI insights at this time. Structural diff is available below.";
+  // 2. Skill-based insights
+  if (addedSkills.length >= 3) {
+    insights.push(`You've successfully integrated ${addedSkills.length} new technical competencies including ${addedSkills.slice(0, 2).join(' and ')}.`);
+  } else if (addedSkills.length > 0) {
+    insights.push(`The addition of ${addedSkills[0]} strengthens your technical foundation.`);
   }
+
+  // 3. Gap-based insights
+  if (resolvedGaps.length > 0) {
+    insights.push(`Great job resolving ${resolvedGaps.length} critical skill gaps since the last version.`);
+  }
+
+  // 4. Recommendation
+  if (newGaps.size > 0) {
+    insights.push(`To reach the next level, focus on mastering ${[...newGaps].slice(0, 1)}.`);
+  }
+
+  return insights.join(' ') || "Your resume remains stable. Focus on adding new projects to boost your score.";
 };
