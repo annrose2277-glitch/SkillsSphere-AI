@@ -18,7 +18,7 @@ import {
 import { useEffect, useState } from "react";
 import Button from "../../../shared/landing/Button";
 import SkillGapVenn from "./SkillGapVenn";
-import CoverLetterModal from "./CoverLetterModal";
+import CoverLetterModal from "../../../shared/components/CoverLetterModal";
 import { generateCoverLetter } from "../services/resumeService";
 
 const AnalysisResult = ({ result, file, jobDescription, onReset }) => {

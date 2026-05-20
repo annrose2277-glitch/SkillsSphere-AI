@@ -5,6 +5,7 @@ import { fetchCurrentUser } from "../features/auth/authSlice";
 import ChatWidget from "../modules/ai-assistant/components/ChatWidget";
 import LandingPage from "../modules/landing/LandingPage";
 import DashboardPage from "../modules/dashboard/DashboardPage";
+import CoverLetterHistoryPage from "../modules/dashboard/pages/CoverLetterHistoryPage";
 import ResumeAnalyzerPage from "../modules/resume-analyzer/pages/ResumeAnalyzerPage";
 import JobMatcherPage from "../modules/job-matcher/pages/JobMatcherPage";
 import ComponentDemo from "../modules/auth/components/ComponentDemo";
@@ -74,6 +75,14 @@ function App() {
           element={
             <ProtectedRoute requiredRole="student">
               <ResumeAnalyzerPage />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/cover-letters" 
+          element={
+            <ProtectedRoute requiredRole="student">
+              <CoverLetterHistoryPage />
             </ProtectedRoute>
           } 
         />

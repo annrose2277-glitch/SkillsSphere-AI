@@ -63,6 +63,7 @@ const Navbar = () => {
           { name: 'Job Board', path: '/jobs', icon: <Briefcase size={20} /> },
           { name: 'Job Match', path: '/job-matcher', icon: <Sparkles size={20} /> },
           { name: 'Resume Analyzer', path: '/resume-analyzer', icon: <FileText size={20} /> },
+          { name: 'Cover Letters', path: '/cover-letters', icon: <FileText size={20} /> },
           { name: 'Roadmap', path: '/roadmap', icon: <Rocket size={20} /> }
         ]
     ),
