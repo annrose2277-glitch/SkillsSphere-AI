@@ -43,7 +43,11 @@ const topicProgressSchema = new mongoose.Schema({
         ref: "User",
       }
     }
-  ]
+  ],
+  addedByTutor: {
+    type: Boolean,
+    default: false,
+  }
 });
 
 const learningProgressSchema = new mongoose.Schema(
@@ -63,6 +67,12 @@ const learningProgressSchema = new mongoose.Schema(
       type: Number,
       default: 0,
     },
+    recruitersTracking: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User",
+      }
+    ],
   },
   { 
     timestamps: true,

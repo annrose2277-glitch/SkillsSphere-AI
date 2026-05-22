@@ -14,10 +14,12 @@ import matchingRoutes from "./src/modules/matching/routes.js";
 import dashboardRoutes from "./src/modules/dashboard/routes.js";
 import coverLetterRoutes from "./src/modules/coverLetters/routes.js";
 import classroomRoutes from "./src/modules/classrooms/routes.js";
+import notificationRoutes from "./src/modules/notifications/routes.js";
 import userRoutes from "./src/modules/users/routes.js";
 import interviewRoutes from "./src/modules/interviews/routes.js";
 import fileRoutes from "./src/modules/files/routes.js";
 import { initClassroomSockets } from "./src/modules/classrooms/socket.js";
+import { initInterviewSockets } from "./src/modules/interviews/socket.js";
 import globalErrorHandler from "./src/middleware/errorMiddleware.js";
 import { logEvaluatorConfig } from "./src/config/evaluatorConfig.js";
 import { setIO } from "./src/utils/socketIO.js";
@@ -109,10 +111,12 @@ app.use("/api/classrooms", classroomRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/interviews", interviewRoutes);
 app.use("/api/files", fileRoutes);
+app.use("/api/notifications", notificationRoutes);
 app.use("/api/analytics", analyticsRoutes);
 
 initClassroomSockets(io);
 initNotificationSockets(io);
+initInterviewSockets(io);
 
 app.use(globalErrorHandler);
 
