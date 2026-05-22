@@ -266,6 +266,24 @@ const RecruiterApplicantsPage = () => {
                           </div>
                         </div>
 
+                        {app.aiRecruiterInsights && app.aiRecruiterInsights.length > 0 && (
+                          <div className="space-y-3 pt-6 border-t border-white/5">
+                            <h4 className="text-sm font-bold text-blue-400 uppercase tracking-widest flex items-center gap-2">
+                              <Sparkles size={16} /> AI Recruiter Insights
+                            </h4>
+                            <div className="p-5 bg-slate-900/50 border border-blue-500/20 rounded-2xl shadow-inner">
+                              <ul className="space-y-2">
+                                {app.aiRecruiterInsights.map((insight, idx) => (
+                                  <li key={idx} className="flex items-start gap-2 text-sm text-slate-300">
+                                    <span className="text-blue-400 mt-0.5">•</span>
+                                    <span className="leading-relaxed">{insight}</span>
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+                          </div>
+                        )}
+
                         {app.matchBreakdown && (
                           <div className="space-y-3 pt-6 border-t border-white/5">
                             <h4 className="text-sm font-bold text-emerald-400 uppercase tracking-widest flex items-center gap-2">

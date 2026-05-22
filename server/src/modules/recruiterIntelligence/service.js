@@ -71,7 +71,46 @@ export const evaluateCandidateMatch = async (applicationId) => {
     else if (finalScore >= 70) category = "Moderate Match";
     else if (finalScore >= 50) category = "Growth Potential";
 
-    // 6. Update Application Document
+    // 6. Generate AI Recruiter Insights
+    const insights = [];
+
+    if (atsScore >= 80) {
+      insights.push("Excellent ATS structure and keyword optimization.");
+    } else if (atsScore < 50) {
+      insights.push("Poor ATS compatibility; resume may not parse well.");
+    }
+
+    if (skillScore >= 80) {
+      insights.push("Strong alignment with required technical skills.");
+    } else if (skillScore < 50) {
+      insights.push("Significant gaps in required technical skills.");
+    }
+
+    const missingSkills = pipelineResult.gapAnalysis?.missingSkills || [];
+    if (missingSkills.length > 0) {
+      const missing = missingSkills.slice(0, 3).map(s => s.skill || s).join(", ");
+      insights.push(`Missing experience in: ${missing}.`);
+    }
+
+    if (contributionActivity === "High") {
+      insights.push("Active open-source contributor with roadmap completion progress.");
+    } else if (contributionActivity === "Medium") {
+      insights.push("Some contribution activity detected on roadmap.");
+    }
+
+    if (careerReadiness === "High") {
+      insights.push("Shows high career readiness and roadmap completion.");
+    }
+
+    if (projectStrengthScore >= 80) {
+      insights.push("Demonstrates strong project impact and experience.");
+    }
+
+    if (insights.length === 0) {
+      insights.push("Candidate meets basic criteria but lacks standout signals.");
+    }
+
+    // 7. Update Application Document
     application.aiMatchScore = finalScore;
     application.matchCategory = category;
     application.matchBreakdown = {
@@ -81,6 +120,7 @@ export const evaluateCandidateMatch = async (applicationId) => {
       contributionActivity,
       careerReadiness,
     };
+    application.aiRecruiterInsights = insights;
 
     await application.save();
     return application;

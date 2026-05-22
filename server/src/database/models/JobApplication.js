@@ -75,6 +75,11 @@ const jobApplicationSchema = new mongoose.Schema(
       careerReadiness: { type: String, default: null },
     },
 
+    aiRecruiterInsights: {
+      type: [String],
+      default: [],
+    },
+
     statusHistory: [
       {
         status: {
