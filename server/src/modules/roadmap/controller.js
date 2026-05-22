@@ -34,21 +34,28 @@ export const syncRoadmap = asyncHandler(async (req, res) => {
 
   let progress = await LearningProgress.findOne({ user: req.user._id });
 
-  const roadmapData = topics.map(topic => ({
-    topicName: topic,
-    status: "not_started"
-  }));
+  const roadmapData = topics.map(topic => {
+    const topicName = typeof topic === "string" ? topic : topic.text;
+    const type = typeof topic === "string" ? "learning" : topic.type;
+    return {
+      topicName,
+      type,
+      status: "not_started"
+    };
+  });
 
   if (progress) {
     // If roadmap exists, we merge (don't overwrite completed topics)
     const existingTopics = new Map(progress.roadmap.map(t => [t.topicName, t]));
     
     progress.targetRole = targetRole;
-    progress.roadmap = topics.map(topicName => {
+    progress.roadmap = topics.map(topic => {
+      const topicName = typeof topic === "string" ? topic : topic.text;
+      const type = typeof topic === "string" ? "learning" : topic.type;
       if (existingTopics.has(topicName)) {
         return existingTopics.get(topicName);
       }
-      return { topicName, status: "not_started" };
+      return { topicName, type, status: "not_started" };
     });
   } else {
     progress = new LearningProgress({
