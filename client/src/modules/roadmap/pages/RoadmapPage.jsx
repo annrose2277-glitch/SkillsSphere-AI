@@ -4,6 +4,7 @@ import { CheckCircle2, Circle, Clock, Rocket, Target, Award, ArrowRight, Star } 
 import Navbar from "../../../shared/landing/Navbar";
 import { getMyRoadmap, updateTopicStatus } from "../services/roadmapService";
 import { LoadingState, useToast } from "../../../shared/components";
+import ContributionSummaryCard from "../components/ContributionSummaryCard";
 
 const RoadmapPage = () => {
   const { user } = useSelector((state) => state.auth);
@@ -86,18 +87,22 @@ const RoadmapPage = () => {
             </h1>
           </div>
           
-           <div className="bg-[var(--surface)] border border-[var(--border)] p-4 rounded-2xl flex items-center gap-4 shadow-xl">
-             <div className="relative w-16 h-16 flex items-center justify-center">
-                <svg className="w-full h-full transform -rotate-90">
-                  <circle cx="32" cy="32" r="28" fill="transparent" stroke="currentColor" strokeWidth="4" className="text-[var(--border)] opacity-40" />
-                  <circle cx="32" cy="32" r="28" fill="transparent" stroke="currentColor" strokeWidth="4" strokeDasharray={175.9} strokeDashoffset={175.9 * (1 - roadmap.overallProgress / 100)} className="text-primary transition-all duration-1000" />
-                </svg>
-                <span className="absolute text-sm font-black">{roadmap.overallProgress}%</span>
-             </div>
-             <div>
-               <p className="text-xs font-bold text-text-muted uppercase">Overall Readiness</p>
-               <p className="text-lg font-black">{roadmap.overallProgress === 100 ? "Job Ready!" : "In Progress"}</p>
-             </div>
+          <div className="flex flex-col sm:flex-row gap-4 items-stretch md:items-end">
+            <ContributionSummaryCard roadmap={roadmap} />
+
+            <div className="bg-[var(--surface)] border border-[var(--border)] p-4 rounded-2xl flex items-center gap-4 shadow-xl">
+              <div className="relative w-16 h-16 flex items-center justify-center">
+                  <svg className="w-full h-full transform -rotate-90">
+                    <circle cx="32" cy="32" r="28" fill="transparent" stroke="currentColor" strokeWidth="4" className="text-[var(--border)] opacity-40" />
+                    <circle cx="32" cy="32" r="28" fill="transparent" stroke="currentColor" strokeWidth="4" strokeDasharray={175.9} strokeDashoffset={175.9 * (1 - roadmap.overallProgress / 100)} className="text-primary transition-all duration-1000" />
+                  </svg>
+                  <span className="absolute text-sm font-black">{roadmap.overallProgress}%</span>
+              </div>
+              <div>
+                <p className="text-xs font-bold text-text-muted uppercase">Overall Readiness</p>
+                <p className="text-lg font-black">{roadmap.overallProgress === 100 ? "Job Ready!" : "In Progress"}</p>
+              </div>
+            </div>
           </div>
         </div>
 
