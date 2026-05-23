@@ -333,10 +333,14 @@ cp .env.example .env
 - `GOOGLE_CLIENT_ID`
 - `GOOGLE_CLIENT_SECRET`
 - `GEMINI_API_KEY` (Required for AI Cover Letter Generation)
+- `REDIS_URL` (Required for caching API responses, e.g., redis://localhost:6379)
 
 ```env
 # AI/ML Configuration (Required for semantic matching — free tier)
 HF_API_TOKEN=your_hugging_face_token
+
+# Redis Configuration
+REDIS_URL=redis://localhost:6379
 
 # Email Setup (if using console/smtp directly in server)
 EMAIL_SERVICE_MODE=console
