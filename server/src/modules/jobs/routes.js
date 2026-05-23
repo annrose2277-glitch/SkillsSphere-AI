@@ -1,6 +1,7 @@
 import express from "express";
 import { protect, authorizeRoles } from "../../middleware/authMiddleware.js";
 import { jobCreationLimiter } from "../../middleware/rateLimiter.js";
+import cacheMiddleware from "../../middleware/cacheMiddleware.js";
 import {
   createJobPosting,
   getRecruiterJobs,
@@ -37,7 +38,7 @@ router.use(protect);
  *       200:
  *         description: List of jobs
  */
-router.get("/", getJobs);
+router.get("/", cacheMiddleware("jobs", 300), getJobs);
 /**
  * @openapi
  * /api/jobs/recommendations:

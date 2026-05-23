@@ -23,6 +23,7 @@ import { initInterviewSockets } from "./src/modules/interviews/socket.js";
 import globalErrorHandler from "./src/middleware/errorMiddleware.js";
 import { logEvaluatorConfig } from "./src/config/evaluatorConfig.js";
 import { setIO } from "./src/utils/socketIO.js";
+import { connectRedis } from "./src/config/redis.js";
 import { initNotificationSockets } from "./src/modules/notifications/socket.js";
 import { verifySocketToken } from "./src/middleware/authMiddleware.js";
 import swaggerUi from "swagger-ui-express";
@@ -77,6 +78,7 @@ app.use((req, res, next) => {
   next();
 });
 
+await connectRedis();
 await connectDB();
 logEvaluatorConfig();
 

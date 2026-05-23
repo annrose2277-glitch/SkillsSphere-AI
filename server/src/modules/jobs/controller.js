@@ -16,6 +16,7 @@ import {
 } from "./service.js";
 import AppError from "../../utils/AppError.js";
 import asyncHandler from "../../utils/asyncHandler.js";
+import { invalidateCacheByPrefix } from "../../utils/cacheHelpers.js";
 
 /**
  * @desc    Create a new job posting
@@ -85,6 +86,9 @@ export const createJobPosting = asyncHandler(async (req, res) => {
     keywords,
     recruiter: req.user._id,
   });
+
+  // Invalidate jobs cache
+  await invalidateCacheByPrefix("jobs");
 
   res.status(201).json({
     success: true,
