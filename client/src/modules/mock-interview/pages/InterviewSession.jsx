@@ -17,6 +17,8 @@ import {
   Target,
   MessageSquare,
   Brain,
+  Mic,
+  MicOff,
 } from "lucide-react";
 import "../styles/mock-interview.css";
 
@@ -46,6 +48,8 @@ const InterviewSession = () => {
   const [participants, setParticipants] = useState([]);
   const [liveTyping, setLiveTyping] = useState("");
   const [socketStatus, setSocketStatus] = useState("connecting");
+  const [isRecording, setIsRecording] = useState(false);
+  const mediaRecorderRef = useRef(null);
 
   const isObserver = user && session && user._id !== session.userId;
 
@@ -129,9 +133,30 @@ const InterviewSession = () => {
       setLiveTyping(text);
     });
 
+    newSocket.on("answer-evaluated", (data) => {
+      handleEvaluationResult(data);
+    });
+
+    newSocket.on("live-transcript", (data) => {
+      if (data.transcript) {
+        setAnswer((prev) => (prev ? prev + " " + data.transcript : data.transcript));
+      }
+    });
+
+    newSocket.on("evaluation-error", (err) => {
+      setError(err.message || "Failed to submit answer.");
+      console.error("[InterviewSession] Socket evaluation error:", err);
+      setSubmitting(false);
+    });
+
     setSocket(newSocket);
 
-    return () => newSocket.close();
+    return () => {
+      newSocket.close();
+      if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") {
+        mediaRecorderRef.current.stop();
+      }
+    };
   }, [session, user, sessionId]);
 
   const formatTime = (seconds) => {
@@ -140,35 +165,41 @@ const InterviewSession = () => {
     return `${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
   };
 
+  const handleEvaluationResult = (data) => {
+    setLastScores(data.scores);
+    setShowScores(true);
+    setAnswer("");
+    setSubmitting(false);
+
+    if (data.isLastQuestion) {
+      setIsLastQuestion(true);
+    } else if (data.nextQuestion) {
+      setTimeout(() => {
+        setCurrentQuestion(data.nextQuestion);
+        setCurrentIndex(data.nextQuestion.index);
+        setShowScores(false);
+        setLastScores(null);
+        if (textareaRef.current) textareaRef.current.focus();
+      }, 3000);
+    }
+  };
+
   const handleSubmitAnswer = async () => {
     if (!answer.trim()) return;
     setSubmitting(true);
     setError(null);
 
+    if (socket && socketStatus === "connected") {
+      socket.emit("submit-answer", { sessionId, transcript: answer.trim(), audioBuffer: null });
+      return;
+    }
+
     try {
       const res = await submitAnswer(sessionId, answer.trim());
-      const data = res.data;
-
-      setLastScores(data.scores);
-      setShowScores(true);
-      setAnswer("");
-
-      if (data.isLastQuestion) {
-        setIsLastQuestion(true);
-      } else if (data.nextQuestion) {
-        // Wait 3 seconds to show scores, then load next question
-        setTimeout(() => {
-          setCurrentQuestion(data.nextQuestion);
-          setCurrentIndex(data.nextQuestion.index);
-          setShowScores(false);
-          setLastScores(null);
-          if (textareaRef.current) textareaRef.current.focus();
-        }, 3000);
-      }
+      handleEvaluationResult(res.data);
     } catch (err) {
       setError(err.message || "Failed to submit answer.");
       console.error("[InterviewSession] Submit error:", err);
-    } finally {
       setSubmitting(false);
     }
   };
@@ -205,6 +236,41 @@ const InterviewSession = () => {
     if (socket) {
       socket.emit("save-private-note", { sessionId, note });
     }
+  };
+
+  const startRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mediaRecorder = new MediaRecorder(stream, { mimeType: "audio/webm" });
+      mediaRecorderRef.current = mediaRecorder;
+
+      if (socket && socketStatus === "connected") {
+        socket.emit("start-audio-stream", { sessionId });
+      }
+
+      mediaRecorder.ondataavailable = (event) => {
+        if (event.data.size > 0 && socket && socketStatus === "connected") {
+          socket.emit("audio-chunk", { sessionId, chunk: event.data });
+        }
+      };
+
+      mediaRecorder.start(1000); // send chunks every 1 second
+      setIsRecording(true);
+    } catch (err) {
+      console.error("Error accessing microphone:", err);
+      setError("Microphone access denied or unavailable.");
+    }
+  };
+
+  const stopRecording = () => {
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") {
+      mediaRecorderRef.current.stop();
+      mediaRecorderRef.current.stream.getTracks().forEach((track) => track.stop());
+    }
+    if (socket && socketStatus === "connected") {
+      socket.emit("end-audio-stream", { sessionId });
+    }
+    setIsRecording(false);
   };
 
   if (loading) {
@@ -347,6 +413,24 @@ const InterviewSession = () => {
               ) : (
                 <>
                   <Send size={16} /> Submit Answer
+                </>
+              )}
+            </button>
+            <button
+              className={`btn-record flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-semibold transition-all ${
+                isRecording ? "bg-red-500/20 text-red-500 hover:bg-red-500/30" : "bg-slate-800 text-slate-300 hover:bg-slate-700"
+              }`}
+              onClick={isRecording ? stopRecording : startRecording}
+              disabled={submitting || isObserver}
+              style={{ display: isObserver ? 'none' : 'flex' }}
+            >
+              {isRecording ? (
+                <>
+                  <MicOff size={16} /> Stop
+                </>
+              ) : (
+                <>
+                  <Mic size={16} /> Record
                 </>
               )}
             </button>
