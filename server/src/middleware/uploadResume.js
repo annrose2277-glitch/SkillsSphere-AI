@@ -22,6 +22,13 @@ const fileFilter = (_req, file, cb) => {
   const hasAllowedMimeType = allowedMimeTypes.includes(file.mimetype);
   const hasAllowedExtension = allowedExtensions.includes(extension);
 
+  // Defense in depth: strictly reject malicious traversal characters
+  if (/[/\\]/.test(file.originalname) || file.originalname.includes("..")) {
+    const traversalError = new Error("Invalid filename: Directory traversal is not allowed");
+    traversalError.code = "INVALID_FILE_NAME";
+    return cb(traversalError, false);
+  }
+
   if (hasAllowedMimeType && hasAllowedExtension) {
     cb(null, true);
   } else {
@@ -50,8 +57,9 @@ export const removeUploadedFile = (filePath) => {
 };
 
 const buildStoredFilename = (originalName) => {
-  const ext = path.extname(originalName);
-  const name = originalName.replace(ext, "").replace(/\s+/g, "-");
+  const safeOriginalName = path.basename(originalName);
+  const ext = path.extname(safeOriginalName);
+  const name = safeOriginalName.replace(ext, "").replace(/\s+/g, "-");
   return `${Date.now()}-${name}${ext}`;
 };
 
@@ -88,7 +96,7 @@ const handleMulterError = (error, res) => {
     });
   }
 
-  if (error?.code === "INVALID_FILE_TYPE") {
+  if (error?.code === "INVALID_FILE_TYPE" || error?.code === "INVALID_FILE_NAME") {
     return res.status(400).json({
       success: false,
       message: error.message,
