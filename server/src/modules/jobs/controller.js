@@ -264,6 +264,66 @@ export const getApplications = asyncHandler(async (req, res) => {
 });
 
 /**
+ * @desc    Export all applications for a job posting as CSV
+ * @route   GET /api/jobs/:id/applications/export
+ * @access  Private (Recruiters only)
+ */
+export const exportApplicationsToCSV = asyncHandler(async (req, res) => {
+  const { status, sortBy } = req.query || {};
+  const applications = await getJobAppsService(req.params.id, req.user._id, status, sortBy);
+
+  // Construct CSV headers
+  const headers = [
+    "Candidate Name",
+    "Candidate Email",
+    "Match Score",
+    "Match Category",
+    "Status",
+    "Apply Date",
+    "Resume Link",
+    "Cover Note"
+  ];
+
+  const toCSVField = (value) => {
+    if (value === null || value === undefined || value === "") return '"N/A"';
+    let str = String(value);
+    
+    // Prevent CSV Injection (Macro Injection)
+    if (/^[=+\-@\t\r]/.test(str)) {
+      str = "'" + str;
+    }
+    
+    // Escape quotes and replace newlines with space
+    str = str.replace(/"/g, '""').replace(/\r?\n|\r/g, " ");
+    
+    return `"${str}"`;
+  };
+
+  // Convert applications to CSV rows
+  const rows = applications.map(app => {
+    return [
+      toCSVField(app.applicant?.name),
+      toCSVField(app.applicant?.email),
+      toCSVField(app.aiMatchScore !== null && app.aiMatchScore !== undefined ? `${app.aiMatchScore}%` : null),
+      toCSVField(app.matchCategory),
+      toCSVField(app.status || "pending"),
+      toCSVField(new Date(app.createdAt).toLocaleDateString()),
+      toCSVField(app.resumeLink),
+      toCSVField(app.coverNote)
+    ].join(",");
+  });
+
+  const csvContent = [headers.join(","), ...rows].join("\n");
+
+  res.setHeader("Content-Type", "text/csv");
+  res.setHeader(
+    "Content-Disposition",
+    `attachment; filename=job-${req.params.id}-applicants.csv`
+  );
+  res.status(200).send(csvContent);
+});
+
+/**
  * @desc    Get current student's applied job IDs
  * @route   GET /api/jobs/my-applications
  * @access  Private (Students only)
