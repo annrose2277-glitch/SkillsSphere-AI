@@ -34,6 +34,7 @@ import InterviewHistory from "../modules/mock-interview/pages/InterviewHistory";
 import TutorInterviewConsole from "../modules/mock-interview/pages/TutorInterviewConsole";
 import TutorInterviewsList from "../modules/mock-interview/pages/TutorInterviewsList";
 import TutorAnalyticsDashboard from "../modules/analytics/TutorAnalyticsDashboard";
+import NotificationsPage from "../modules/notifications/pages/NotificationsPage";
 import ProtectedRoute from "../shared/components/ProtectedRoute";
 import SocketNotificationListener from "../shared/components/SocketNotificationListener";
 function App() {
@@ -92,6 +93,15 @@ function App() {
           element={
             <ProtectedRoute>
               <DashboardPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/notifications"
+          element={
+            <ProtectedRoute>
+              {" "}
+              <NotificationsPage />
             </ProtectedRoute>
           }
         />
