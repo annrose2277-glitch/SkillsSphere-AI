@@ -97,7 +97,7 @@ const RecruiterApplicantsPage = () => {
   const [activePreset, setActivePreset] = useState('');
   const [isExportDropdownOpen, setIsExportDropdownOpen] = useState(false);
 
-  const handleExportCSV = () => {
+  const handleExportLocalCSV = () => {
     setIsExportDropdownOpen(false);
     if (!applicants || applicants.length === 0) return;
 
