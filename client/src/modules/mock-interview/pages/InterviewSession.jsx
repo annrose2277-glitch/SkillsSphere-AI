@@ -228,10 +228,18 @@ const InterviewSession = () => {
 
     return () => {
       document.removeEventListener("visibilitychange", handleVisibilityChange);
-      newSocket.close();
-      if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") {
-        mediaRecorderRef.current.stop();
+      if (mediaRecorderRef.current) {
+        if (mediaRecorderRef.current.state !== "inactive") {
+          mediaRecorderRef.current.stop();
+        }
+        if (mediaRecorderRef.current.stream) {
+          mediaRecorderRef.current.stream.getTracks().forEach((track) => track.stop());
+        }
       }
+      if (newSocket && newSocket.connected) {
+        newSocket.emit("end-audio-stream", { sessionId });
+      }
+      newSocket.close();
     };
   }, [session, user, sessionId]);
 

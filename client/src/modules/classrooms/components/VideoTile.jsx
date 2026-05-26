@@ -8,6 +8,11 @@ export default function VideoTile({ stream, user, isMuted, isHandRaised, isScree
     if (videoRef.current && stream) {
       videoRef.current.srcObject = stream;
     }
+    return () => {
+      if (videoRef.current) {
+        videoRef.current.srcObject = null;
+      }
+    };
   }, [stream]);
 
   return (

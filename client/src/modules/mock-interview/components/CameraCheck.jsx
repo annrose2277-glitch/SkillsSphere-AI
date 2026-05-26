@@ -59,11 +59,26 @@ const CameraCheck = ({ onStreamReady }) => {
     startCamera();
 
     return () => {
-      if (currentStream) {
-        currentStream.getTracks().forEach((track) => track.stop());
+      if (javascriptNode) {
+        javascriptNode.onaudioprocess = null;
+        javascriptNode.disconnect();
       }
-      if (audioContext) {
+      if (microphone) {
+        microphone.disconnect();
+      }
+      if (analyser) {
+        analyser.disconnect();
+      }
+      if (audioContext && audioContext.state !== "closed") {
         audioContext.close();
+      }
+      if (videoRef.current) {
+        videoRef.current.srcObject = null;
+      }
+      if (currentStream) {
+        currentStream.getTracks().forEach((track) => {
+          track.stop();
+        });
       }
     };
   }, []);

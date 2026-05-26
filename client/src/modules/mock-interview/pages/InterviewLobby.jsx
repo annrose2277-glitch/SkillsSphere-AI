@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import Navbar from "../../../shared/landing/Navbar";
 import CameraCheck from "../components/CameraCheck";
 import PersonaSelector from "../components/PersonaSelector";
 import Button from "../../../shared/components/Button";
@@ -68,7 +69,9 @@ const InterviewLobby = () => {
   }));
 
   return (
-    <div className="max-w-[1200px] mx-auto p-8 min-h-[calc(100vh-80px)] flex flex-col gap-8">
+    <>
+      <Navbar />
+      <div className="pt-24 max-w-[1200px] mx-auto p-8 min-h-[calc(100vh-80px)] flex flex-col gap-8">
       <header className="text-center mb-4">
         <h1 className="text-4xl font-extrabold bg-gradient-to-br from-indigo-500 to-purple-500 bg-clip-text text-transparent mb-2">Adaptive Cognitive Interview</h1>
         <p className="text-slate-400 max-w-2xl mx-auto">
@@ -160,6 +163,7 @@ const InterviewLobby = () => {
         </div>
       </div>
     </div>
+    </>
   );
 };
 
