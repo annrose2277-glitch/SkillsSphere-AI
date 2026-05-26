@@ -161,6 +161,7 @@ npm run dev:web
 
 > ⚠️ Backend requires environment variables to run properly. Refer to the Environment Setup section below.
 
+docs
 ## ⚙️ Environment Setup
 
 Before running the application, you must configure the environment variables for the different services. Do not commit your `.env` files to version control.
@@ -202,6 +203,8 @@ touch .env
 
 *(Note: If the project actually has `.env.example` files in those folders, just check what keys are inside them and adjust the code block above to match exactly).*
 
+
+main
 ## 🐳 Run with Docker (Recommended)
 
 To avoid manual installation of Python dependencies, Node modules, and OS-level packages (like FFmpeg), you can run the entire stack using Docker.
