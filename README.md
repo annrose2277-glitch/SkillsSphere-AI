@@ -161,6 +161,69 @@ npm run dev:web
 
 > ⚠️ Backend requires environment variables to run properly. Refer to the Environment Setup section below.
 
+## ⚙️ Environment Setup
+
+Before running the application, you must configure the environment variables for the different services. Do not commit your `.env` files to version control.
+
+### Server (Node.js/Express)
+Navigate to the `server/` directory and copy the example file (if provided) or create a new `.env` file:
+```bash
+cd server
+touch .env
+```
+Add the following keys to the server/.env file:
+
+```env
+PORT=5000
+MONGO_URI=your_mongodb_connection_string
+JWT_SECRET=your_secure_jwt_secret
+```
+
+### Client (React/Vite)
+Navigate to the client/ directory and create a .env file:
+
+```bash
+cd client
+touch .env
+```
+Add the following key to the client/.env file:
+
+```env
+VITE_API_URL=http://localhost:5000/api
+```
+
+### Interview AI Service (Python)
+If the AI microservice requires specific API keys (e.g., OpenAI, HuggingFace), navigate to the interview-ai-service/ directory and create a .env file:
+
+```bash
+cd interview-ai-service
+touch .env
+```
+
+*(Note: If the project actually has `.env.example` files in those folders, just check what keys are inside them and adjust the code block above to match exactly).*
+
+## 🐳 Run with Docker (Recommended)
+
+To avoid manual installation of Python dependencies, Node modules, and OS-level packages (like FFmpeg), you can run the entire stack using Docker.
+
+### Prerequisites
+- [Docker Desktop](https://www.docker.com/products/docker-desktop/) installed and running.
+
+### Steps
+1. Clone the repository and navigate to the root directory.
+2. Ensure you have created your `.env` files in both the `server` and `interview-ai-service` directories (refer to `.env.example`).
+3. Run the following command from the root directory:
+   ```bash
+   docker-compose up --build
+   ```
+
+Access the applications:
+- **Client**: [http://localhost:5173](http://localhost:5173)
+- **Server**: [http://localhost:5000](http://localhost:5000)
+- **AI Microservice**: [http://localhost:8000](http://localhost:8000)
+
+To stop the containers, press `Ctrl+C` or run `docker-compose down`.
+
 ## Scalable Folder Structure
 
 The following structure keeps the project modular and easy to scale for new contributors:
