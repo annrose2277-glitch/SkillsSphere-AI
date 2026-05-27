@@ -1,9 +1,18 @@
-import { describe, it, afterEach, mock } from "node:test";
+import { describe, it, before, after, afterEach, mock } from "node:test";
 import assert from "node:assert/strict";
+import mongoose from "mongoose";
 import * as classroomService from "../service.js";
 import ClassroomSession from "../../../database/models/ClassroomSession.js";
 
 describe("Classroom Service - Active Sessions", () => {
+  before(() => {
+    mongoose.set("bufferCommands", false);
+  });
+
+  after(async () => {
+    await mongoose.connection.close();
+  });
+
   afterEach(() => {
     mock.restoreAll();
   });
@@ -39,30 +48,25 @@ describe("Classroom Service - Active Sessions", () => {
         }
       ];
 
-      // Define mocked chain functions
-      const mockLean = mock.fn(async () => mockActiveSessions);
-      const mockSort = mock.fn(() => ({ lean: mockLean }));
-      const mockPopulate = mock.fn(() => ({ sort: mockSort }));
+      const mockQuery = {
+        populate: mock.fn(function() { return this; }),
+        sort: mock.fn(function() { return this; }),
+        lean: mock.fn(async () => mockActiveSessions),
+      };
       
-      mock.method(ClassroomSession, "find", () => ({
-        populate: mockPopulate
-      }));
+      mock.method(ClassroomSession, "find", () => mockQuery);
 
       const result = await classroomService.getActiveSessions();
 
-      // Assert ClassroomSession.find was called with status: "active"
       assert.equal(ClassroomSession.find.mock.calls.length, 1);
       assert.deepEqual(ClassroomSession.find.mock.calls[0].arguments[0], { status: "active" });
 
-      // Assert populate was called with host details fields
-      assert.equal(mockPopulate.mock.calls.length, 1);
-      assert.deepEqual(mockPopulate.mock.calls[0].arguments, ["host", "name profilePic role"]);
+      assert.equal(mockQuery.populate.mock.calls.length, 1);
+      assert.deepEqual(mockQuery.populate.mock.calls[0].arguments, ["host", "name profilePic role"]);
 
-      // Assert sort was called with createdAt: -1
-      assert.equal(mockSort.mock.calls.length, 1);
-      assert.deepEqual(mockSort.mock.calls[0].arguments[0], { createdAt: -1 });
+      assert.equal(mockQuery.sort.mock.calls.length, 1);
+      assert.deepEqual(mockQuery.sort.mock.calls[0].arguments[0], { createdAt: -1 });
 
-      // Assert final results match the mock data
       assert.deepEqual(result, mockActiveSessions);
     });
   });

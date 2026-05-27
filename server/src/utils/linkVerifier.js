@@ -1,4 +1,4 @@
-import axios from "axios";
+﻿import axios from "axios";
 import dns from "dns/promises";
 
 // Function to check if an IP is private/local
@@ -65,7 +65,7 @@ export const verifyLink = async (url) => {
   } catch (error) {
     // Handle cases where the site exists but blocks automated GETs (like LinkedIn)
     // If it's a 403 or 429, we still consider it "potentially valid" if it's a known domain
-    const isBotProtected = error.response && [403, 429, 999].includes(error.response.status);
+    const isBotProtected = !!(error.response && [403, 429, 999].includes(error.response.status));
     
     return {
       url,

@@ -1,8 +1,12 @@
-import { describe, it } from "node:test";
+﻿import { describe, it, afterEach, mock } from "node:test";
 import assert from "node:assert/strict";
 import { generateAuthCode, consumeAuthCode } from "../authCodeStore.js";
 
 describe("authCodeStore", () => {
+  afterEach(() => {
+    mock.restoreAll();
+  });
+
   it("generates a unique auth code", async () => {
     const code1 = await generateAuthCode("user123");
     const code2 = await generateAuthCode("user123");
