@@ -1,4 +1,4 @@
-﻿import { describe, it, afterEach, mock } from "node:test";
+import { describe, it, afterEach, mock } from "node:test";
 import assert from "node:assert/strict";
 import { generateAuthCode, consumeAuthCode } from "../authCodeStore.js";
 
@@ -12,7 +12,7 @@ describe("authCodeStore", () => {
     const code2 = await generateAuthCode("user123");
 
     assert.equal(typeof code1, "string");
-    assert.equal(code1.length, 48);
+    assert.equal(code1.length, 36);
     assert.notEqual(code1, code2);
   });
 

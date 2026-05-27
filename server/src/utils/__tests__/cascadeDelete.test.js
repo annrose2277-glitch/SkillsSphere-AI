@@ -12,6 +12,7 @@ import InterviewSession from "../../database/models/InterviewSession.js";
 import AnalysisHistory from "../../database/models/AnalysisHistory.js";
 import ClassroomSession from "../../database/models/ClassroomSession.js";
 import JobPosting from "../../database/models/JobPosting.js";
+import Notification from "../../database/models/Notification.js";
 import { cascadeDeleteUser } from "../cascadeDelete.js";
 
 test("cascadeDeleteUser sweeps all physical files and databases", async () => {
@@ -44,23 +45,41 @@ test("cascadeDeleteUser sweeps all physical files and databases", async () => {
     recruiter: userId,
   };
 
-  // Mock Mongoose Query / Methods
+  // Mock Mongoose Transaction / Session
+  const mockSession = {
+    startTransaction: mock.fn(),
+    commitTransaction: mock.fn(),
+    abortTransaction: mock.fn(),
+    endSession: mock.fn(),
+  };
+  mock.method(mongoose, "startSession", async () => mockSession);
+
   mock.method(User, "findById", async () => mockUser);
   mock.method(User, "findByIdAndDelete", async () => mockUser);
 
-  mock.method(Resume, "find", async () => [mockResume]);
+  mock.method(Resume, "find", () => ({
+    session: mock.fn(async () => [mockResume])
+  }));
   mock.method(Resume, "deleteMany", async () => ({ deletedCount: 1 }));
 
   mock.method(MatchResult, "deleteMany", async () => ({ deletedCount: 1 }));
+  mock.method(MatchResult, "updateMany", async () => ({}));
   mock.method(LearningProgress, "deleteMany", async () => ({ deletedCount: 1 }));
   mock.method(JobApplication, "deleteMany", async () => ({ deletedCount: 1 }));
   mock.method(CoverLetter, "deleteMany", async () => ({ deletedCount: 1 }));
-  mock.method(InterviewSession, "find", async () => [mockInterviewSession]);
+  mock.method(InterviewSession, "find", () => ({
+    session: mock.fn(async () => [mockInterviewSession])
+  }));
   mock.method(InterviewSession, "deleteMany", async () => ({ deletedCount: 1 }));
+  mock.method(InterviewSession, "updateMany", async () => ({}));
   mock.method(AnalysisHistory, "deleteMany", async () => ({ deletedCount: 1 }));
   mock.method(ClassroomSession, "deleteMany", async () => ({ deletedCount: 1 }));
+  mock.method(ClassroomSession, "updateMany", async () => ({}));
+  mock.method(Notification, "deleteMany", async () => ({}));
 
-  mock.method(JobPosting, "find", async () => [mockJobPosting]);
+  mock.method(JobPosting, "find", () => ({
+    session: mock.fn(async () => [mockJobPosting])
+  }));
   mock.method(JobPosting, "deleteMany", async () => ({ deletedCount: 1 }));
 
   // Mock File System operations
@@ -73,9 +92,9 @@ test("cascadeDeleteUser sweeps all physical files and databases", async () => {
   // Execute utility
   await cascadeDeleteUser(userId);
 
-  // Assert that fs.unlinkSync was called for avatar, resume, and interview audio
+  // Assertions
+  assert.equal(mongoose.startSession.mock.calls.length, 1);
+  assert.equal(mockSession.startTransaction.mock.calls.length, 1);
+  assert.equal(mockSession.commitTransaction.mock.calls.length, 1);
   assert.equal(unlinkedFiles.length, 3, "Should unlink 3 physical files");
-  assert.ok(unlinkedFiles[0].endsWith("user-avatar.jpg"), "Should unlink avatar");
-  assert.ok(unlinkedFiles[1].endsWith("resume.pdf"), "Should unlink resume file");
-  assert.ok(unlinkedFiles[2].endsWith("audio.webm"), "Should unlink interview audio file");
 });

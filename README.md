@@ -34,25 +34,39 @@ SkillSphere AI aims to simplify the path from learning to hiring by giving users
 
 ## Core Features
 
-1. **Live Interactive Classrooms**  
+docs
+1. **Live Interactive Classrooms** Real-time learning sessions with video, chat, and collaboration.
+
+2. **AI Resume Analyzer** Resume scoring with improvement suggestions. (Route: `/resume-analyzer`)
+
+1. **Live Interactive Classrooms**
    Real-time learning sessions with video, chat, and collaboration.
 
-2. **AI Resume Analyzer**  
+2. **AI Resume Analyzer**
    Resume scoring with improvement suggestions. (Route: `/resume-analyzer`)
+main
    - Drag & Drop / clipboard paste upload
    - ATS score with detailed analysis dashboard
    - Missing keyword identification
    - **Industry Benchmarking Mode** — Analyzes your resume against market standards even without a specific Job Description (BM badge).
    - Live PDF document preview
 
-3. **Resume vs Job Description Matcher**  
+docs
+3. **Resume vs Job Description Matcher** ML-assisted comparison between candidate profile and role requirements.
+
+3. **Resume vs Job Description Matcher**
    ML-assisted comparison between candidate profile and role requirements.
+main
    - **Semantic Resume vs Job Description Matching** — Embedding-based semantic similarity scoring using Hugging Face Inference API (all-MiniLM-L6-v2, free tier)
    - Complements keyword overlap with contextual alignment detection
    - Cosine similarity comparison for conceptually related phrases (e.g., "workflow orchestration" vs "pipeline automation")
 
-4. **AI Mock Interview System**  
+docs
+4. **AI Mock Interview System** Adaptive interview practice with real-time AI evaluation. (Route: `/mock-interview`)
+
+4. **AI Mock Interview System**
    Adaptive interview practice with real-time AI evaluation. (Route: `/mock-interview`)
+main
    - Topic selection (React, Node.js, DSA) with difficulty levels
    - 5-question sessions with randomized, non-repeating questions
    - AI-powered scoring: technical accuracy, communication quality, and concept relevance
@@ -62,17 +76,20 @@ SkillSphere AI aims to simplify the path from learning to hiring by giving users
    - Python AI microservice for NLP evaluation (spaCy + sentence-transformers)
    - Fail-soft mode: falls back to mock scores when AI service is unavailable
 
-5. **Interactive Learning Roadmaps**  
+docs
+5. **Interactive Learning Roadmaps** Personalized
+
+5. **Interactive Learning Roadmaps**
    Personalized skill-trees generated from AI analysis. (Route: `/roadmap`)
    - Visual vertical progression path with interactive milestones
    - Real-time "Job-Readiness" percentage tracking
    - Direct integration with Dashboard for "Next Step" guidance
    - Automatic sync with latest Resume Analysis feedback
 
-6. **Skill Tracking Dashboard**  
+6. **Skill Tracking Dashboard**
    Performance insights and "Next Learning Milestone" guidance to help students track growth.
 
-7. **AI Cover Letter Intelligence System**  
+7. **AI Cover Letter Intelligence System**
    AI-powered career application workflow extending the Resume Intelligence Engine.
    - Generates ATS-friendly, role-specific cover letters using parsed resume data and Gemini AI
    - Dynamic prompt engineering to prevent hallucinations and enforce professional tone
@@ -82,7 +99,7 @@ SkillSphere AI aims to simplify the path from learning to hiring by giving users
    - Professional PDF and TXT export with recruiter-ready formatting
    - Persistent cover letter history dashboard for reusing generated content
 
-8. **Secure Authentication & Email Verification**  
+8. **Secure Authentication & Email Verification**
    OTP-based registration and password recovery system.
    - 6-digit email OTP verification
    - Secure Password Reset (Forgot Password) flow
@@ -161,47 +178,6 @@ npm run dev:web
 
 > ⚠️ Backend requires environment variables to run properly. Refer to the Environment Setup section below.
 
-## ⚙️ Environment Setup
-
-Before running the application, you must configure the environment variables for the different services. Do not commit your `.env` files to version control.
-
-### Server (Node.js/Express)
-Navigate to the `server/` directory and copy the example file (if provided) or create a new `.env` file:
-```bash
-cd server
-touch .env
-```
-Add the following keys to the server/.env file:
-
-```env
-PORT=5000
-MONGO_URI=your_mongodb_connection_string
-JWT_SECRET=your_secure_jwt_secret
-```
-
-### Client (React/Vite)
-Navigate to the client/ directory and create a .env file:
-
-```bash
-cd client
-touch .env
-```
-Add the following key to the client/.env file:
-
-```env
-VITE_API_URL=http://localhost:5000/api
-```
-
-### Interview AI Service (Python)
-If the AI microservice requires specific API keys (e.g., OpenAI, HuggingFace), navigate to the interview-ai-service/ directory and create a .env file:
-
-```bash
-cd interview-ai-service
-touch .env
-```
-
-*(Note: If the project actually has `.env.example` files in those folders, just check what keys are inside them and adjust the code block above to match exactly).*
-
 ## 🐳 Run with Docker (Recommended)
 
 To avoid manual installation of Python dependencies, Node modules, and OS-level packages (like FFmpeg), you can run the entire stack using Docker.
@@ -213,6 +189,7 @@ To avoid manual installation of Python dependencies, Node modules, and OS-level 
 1. Clone the repository and navigate to the root directory.
 2. Ensure you have created your `.env` files in both the `server` and `interview-ai-service` directories (refer to `.env.example`).
 3. Run the following command from the root directory:
+
    ```bash
    docker-compose up --build
    ```
@@ -512,3 +489,4 @@ For local development and testing without configuring an SMTP provider:
 1. Set `EMAIL_SERVICE_MODE=console` in `server/.env`.
 2. When registering a user, the server will output the 6-digit OTP directly to your terminal console instead of sending an email.
 3. Retrieve this OTP from the server command line logs and enter it in the frontend verification modal to complete the registration flow.
+main

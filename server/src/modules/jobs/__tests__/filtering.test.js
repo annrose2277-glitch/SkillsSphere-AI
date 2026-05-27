@@ -11,7 +11,6 @@ describe("Job Service Filtering", () => {
   const mockRecruiterId = new mongoose.Types.ObjectId().toString();
 
   before(() => {
-    // Disable buffering so tests don't hang if they accidentally hit the DB
     mongoose.set("bufferCommands", false);
   });
 
@@ -159,4 +158,3 @@ describe("Job Service Filtering", () => {
     assert.deepEqual(result.applications, mockApps);
   });
 });
-
