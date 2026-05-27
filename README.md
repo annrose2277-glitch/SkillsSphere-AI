@@ -34,10 +34,10 @@ SkillSphere AI aims to simplify the path from learning to hiring by giving users
 
 ## Core Features
 
-1. **Live Interactive Classrooms**  
+1. **Live Interactive Classrooms**
    Real-time learning sessions with video, chat, and collaboration.
 
-2. **AI Resume Analyzer**  
+2. **AI Resume Analyzer**
    Resume scoring with improvement suggestions. (Route: `/resume-analyzer`)
    - Drag & Drop / clipboard paste upload
    - ATS score with detailed analysis dashboard
@@ -45,13 +45,13 @@ SkillSphere AI aims to simplify the path from learning to hiring by giving users
    - **Industry Benchmarking Mode** — Analyzes your resume against market standards even without a specific Job Description (BM badge).
    - Live PDF document preview
 
-3. **Resume vs Job Description Matcher**  
+3. **Resume vs Job Description Matcher**
    ML-assisted comparison between candidate profile and role requirements.
    - **Semantic Resume vs Job Description Matching** — Embedding-based semantic similarity scoring using Hugging Face Inference API (all-MiniLM-L6-v2, free tier)
    - Complements keyword overlap with contextual alignment detection
    - Cosine similarity comparison for conceptually related phrases (e.g., "workflow orchestration" vs "pipeline automation")
 
-4. **AI Mock Interview System**  
+4. **AI Mock Interview System**
    Adaptive interview practice with real-time AI evaluation. (Route: `/mock-interview`)
    - Topic selection (React, Node.js, DSA) with difficulty levels
    - 5-question sessions with randomized, non-repeating questions
@@ -62,17 +62,27 @@ SkillSphere AI aims to simplify the path from learning to hiring by giving users
    - Python AI microservice for NLP evaluation (spaCy + sentence-transformers)
    - Fail-soft mode: falls back to mock scores when AI service is unavailable
 
-5. **Interactive Learning Roadmaps**  
+5. **Interactive Learning Roadmaps**
    Personalized skill-trees generated from AI analysis. (Route: `/roadmap`)
    - Visual vertical progression path with interactive milestones
    - Real-time "Job-Readiness" percentage tracking
    - Direct integration with Dashboard for "Next Step" guidance
    - Automatic sync with latest Resume Analysis feedback
 
-6. **Skill Tracking Dashboard**  
+6. **Skill Tracking Dashboard**
    Performance insights and "Next Learning Milestone" guidance to help students track growth.
 
-6. **Secure Authentication & Email Verification**  
+7. **AI Cover Letter Intelligence System**
+   AI-powered career application workflow extending the Resume Intelligence Engine.
+   - Generates ATS-friendly, role-specific cover letters using parsed resume data and Gemini AI
+   - Dynamic prompt engineering to prevent hallucinations and enforce professional tone
+   - **Tone Personalization**: Professional, Formal, Confident, Concise, Startup-Friendly, Creative
+   - **Multi-language Support**: English, Hindi, German, French, Spanish
+   - Instant regeneration with dynamic tone and language switching
+   - Professional PDF and TXT export with recruiter-ready formatting
+   - Persistent cover letter history dashboard for reusing generated content
+
+8. **Secure Authentication & Email Verification**
    OTP-based registration and password recovery system.
    - 6-digit email OTP verification
    - Secure Password Reset (Forgot Password) flow
@@ -151,6 +161,29 @@ npm run dev:web
 
 > ⚠️ Backend requires environment variables to run properly. Refer to the Environment Setup section below.
 
+## 🐳 Run with Docker (Recommended)
+
+To avoid manual installation of Python dependencies, Node modules, and OS-level packages (like FFmpeg), you can run the entire stack using Docker.
+
+### Prerequisites
+- [Docker Desktop](https://www.docker.com/products/docker-desktop/) installed and running.
+
+### Steps
+1. Clone the repository and navigate to the root directory.
+2. Ensure you have created your `.env` files in both the `server` and `interview-ai-service` directories (refer to `.env.example`).
+3. Run the following command from the root directory:
+
+   ```bash
+   docker-compose up --build
+   ```
+
+Access the applications:
+- **Client**: [http://localhost:5173](http://localhost:5173)
+- **Server**: [http://localhost:5000](http://localhost:5000)
+- **AI Microservice**: [http://localhost:8000](http://localhost:8000)
+
+To stop the containers, press `Ctrl+C` or run `docker-compose down`.
+
 ## Scalable Folder Structure
 
 The following structure keeps the project modular and easy to scale for new contributors:
@@ -193,6 +226,8 @@ SkillSphere-AI/
 - `POST /api/resume/analyze` (v2: uses latest-only upsert flow)
 - `GET /api/resume/me/latest`: fetch user's latest parsed resume (no raw resumeText)
 - `GET /api/resume/result/:id`
+- `POST /api/resume/:id/cover-letter`: Generate an AI cover letter
+- `GET /api/cover-letters`: Fetch user's cover letter history
 - `GET /api/roadmap/me`: fetch user's learning roadmap and progress
 - `POST /api/roadmap/sync`: sync roadmap with latest analysis suggestions
 - `PATCH /api/roadmap/update-topic`: update status of a specific roadmap milestone
@@ -320,10 +355,15 @@ cp .env.example .env
 - `JWT_SECRET`
 - `GOOGLE_CLIENT_ID`
 - `GOOGLE_CLIENT_SECRET`
+- `GEMINI_API_KEY` (Required for AI Cover Letter Generation)
+- `REDIS_URL` (Required for caching API responses, e.g., redis://localhost:6379)
 
 ```env
 # AI/ML Configuration (Required for semantic matching — free tier)
 HF_API_TOKEN=your_hugging_face_token
+
+# Redis Configuration
+REDIS_URL=redis://localhost:6379
 
 # Email Setup (if using console/smtp directly in server)
 EMAIL_SERVICE_MODE=console
@@ -425,3 +465,10 @@ To use real email notifications (OTP verification, password reset) via Gmail, fo
    ```
 
 4. **Restart the server** to apply changes.
+
+### 📝 Testing Email Verification (Console Mode)
+
+For local development and testing without configuring an SMTP provider:
+1. Set `EMAIL_SERVICE_MODE=console` in `server/.env`.
+2. When registering a user, the server will output the 6-digit OTP directly to your terminal console instead of sending an email.
+3. Retrieve this OTP from the server command line logs and enter it in the frontend verification modal to complete the registration flow.

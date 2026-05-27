@@ -1,6 +1,7 @@
 import { v4 as uuidv4 } from "uuid";
 import ClassroomSession from "../../database/models/ClassroomSession.js";
 import AppError from "../../utils/AppError.js";
+import { clearRoomState, getRoomState } from "./socket.js";
 
 /**
  * Create a new live classroom session
@@ -76,9 +77,31 @@ export const endSession = async (roomId, hostId) => {
     return session; // already ended
   }
 
+  // Capture final artifacts from memory state
+  const finalState = getRoomState(roomId);
+  if (finalState) {
+    session.chatHistory = finalState.chatHistory || [];
+    session.codeSnapshot = finalState.code || "";
+  }
+
   session.status = "ended";
   session.endedAt = new Date();
   await session.save();
 
+  // Clear in-memory room state to prevent memory leaks
+  clearRoomState(roomId);
+
   return session;
 };
+
+/**
+ * Fetch all currently active classroom sessions
+ * @returns {Promise<Array>} List of active session documents
+ */
+export const getActiveSessions = async () => {
+  return await ClassroomSession.find({ status: "active" })
+    .populate("host", "name profilePic role")
+    .sort({ createdAt: -1 })
+    .lean();
+};
+

@@ -10,7 +10,8 @@ import {
   getLatestResume,
   compareVersions,
 } from "./controller.js";
-import { resumeAnalysisLimiter } from "../../middleware/rateLimiter.js";
+import { generateCoverLetterForResume } from "./coverLetter.controller.js";
+import { resumeAnalysisLimiter, aiActionLimiter } from "../../middleware/rateLimiter.js";
 
 import { protect, authorizeRoles } from "../../middleware/authMiddleware.js";
 
@@ -78,6 +79,7 @@ router.post(
  */
 router.post(
   "/analyze",
+  resumeAnalysisLimiter,
   protect,
   authorizeRoles("student"),
   parseResumeUpload,
@@ -145,6 +147,43 @@ router.get("/result/:id", protect, getResumeResult);
  *       200:
  *         description: Strategic comparison generated
  */
-router.post("/compare", protect, compareVersions);
+router.post("/compare", aiActionLimiter, protect, compareVersions);
+
+/**
+ * @openapi
+ * /api/resume/{id}/cover-letter:
+ *   post:
+ *     summary: Generate an AI cover letter for a specific resume
+ *     tags: [Resumes]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - jobDescription
+ *             properties:
+ *               jobDescription:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Cover letter generated successfully
+ *       400:
+ *         description: Job description missing
+ *       404:
+ *         description: Resume not found
+ *       500:
+ *         description: AI generation failed
+ */
+router.post("/:id/cover-letter", aiActionLimiter, protect, authorizeRoles("student"), generateCoverLetterForResume);
 
 export default router;

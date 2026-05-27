@@ -1,11 +1,16 @@
 import InterviewSession from "../../database/models/InterviewSession.js";
 import QuestionBank from "../../database/models/QuestionBank.js";
 import ConceptGraph from "../../database/models/ConceptGraph.js";
+import LearningProgress from "../../database/models/LearningProgress.js";
 import AppError from "../../utils/AppError.js";
+import mongoose from "mongoose";
 import {
   transcribeAudio,
   evaluateAnswer,
 } from "../../integrations/aiInterviewService.js";
+import redisClient from "../../config/redis.js";
+import Notification from "../../database/models/Notification.js";
+import { getIO } from "../../utils/socketIO.js";
 
 /**
  * Select random questions from the bank for a given topic and difficulty.
@@ -266,13 +271,29 @@ export const finalizeInterview = async (sessionId, userId) => {
   // Calculate duration
   const duration = Math.round((Date.now() - session.startedAt.getTime()) / 1000);
 
-  // Update session
-  session.status = "completed";
-  session.overallScore = overallScore;
-  session.weakConcepts = weakConcepts;
-  session.duration = duration;
-  session.completedAt = new Date();
-  await session.save();
+  const dbSession = await mongoose.startSession();
+  dbSession.startTransaction();
+
+  try {
+    session.status = "completed";
+    session.overallScore = overallScore;
+    session.weakConcepts = weakConcepts;
+    session.duration = duration;
+    session.completedAt = new Date();
+    
+    // Save within the transaction
+    await session.save({ session: dbSession });
+    
+    // If future logic updates LearningProgress here, it should pass { session: dbSession }
+    
+    await dbSession.commitTransaction();
+  } catch (error) {
+    await dbSession.abortTransaction();
+    console.error("Transaction aborted in finalizeInterview:", error);
+    throw error;
+  } finally {
+    dbSession.endSession();
+  }
 
   return {
     overallScore,
@@ -351,6 +372,17 @@ export const getSessionResults = async (sessionId, userId) => {
  * List all available interview topics from the question bank.
  */
 export const listAvailableTopics = async () => {
+  const CACHE_KEY = "interview_topics";
+
+  if (redisClient?.isReady) {
+    try {
+      const cached = await redisClient.get(CACHE_KEY);
+      if (cached) return JSON.parse(cached);
+    } catch {
+      // Redis unavailable — compute fresh
+    }
+  }
+
   const topics = await QuestionBank.aggregate([
     {
       $group: {
@@ -370,32 +402,64 @@ export const listAvailableTopics = async () => {
     { $sort: { topic: 1 } },
   ]);
 
+  if (redisClient?.isReady) {
+    try {
+      await redisClient.setEx(CACHE_KEY, 1800, JSON.stringify(topics));
+    } catch {
+      // silently fail
+    }
+  }
   return topics;
 };
 
-export const getTutorSessionsList = async (page, limit) => {
+export const getTutorSessionsList = async (tutorId, page, limit) => {
   const skip = (page - 1) * limit;
+
+  const authorizedRoadmaps = await LearningProgress.find({ tutorsTracking: tutorId }).select("user");
+  const authorizedStudentIds = authorizedRoadmaps.map(r => r.user);
+
   const [sessions, total] = await Promise.all([
-    InterviewSession.find({ status: 'completed' })
+    InterviewSession.find({ status: 'completed', userId: { $in: authorizedStudentIds } })
       .populate('userId', 'name email')
       .select('topic difficulty status overallScore tutorOverallScore duration createdAt')
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit)
       .lean(),
-    InterviewSession.countDocuments({ status: 'completed' }),
+    InterviewSession.countDocuments({ status: 'completed', userId: { $in: authorizedStudentIds } }),
   ]);
   return { sessions, total, page, pages: Math.ceil(total / limit) };
 };
 
-export const getTutorSessionDetails = async (sessionId) => {
-  return await InterviewSession.findById(sessionId).populate('userId', 'name email').lean();
+export const getTutorSessionDetails = async (sessionId, tutorId) => {
+  const session = await InterviewSession.findById(sessionId).populate('userId', 'name email').lean();
+  if (!session) return null;
+
+  const authorizedRoadmap = await LearningProgress.findOne({
+    user: session.userId._id || session.userId,
+    tutorsTracking: tutorId
+  });
+
+  if (!authorizedRoadmap) {
+    throw new AppError("You are not authorized to view this interview session", 403);
+  }
+
+  return session;
 };
 
-export const addTutorFeedback = async (sessionId, { tutorOverallScore, tutorOverallFeedback, answersFeedback }) => {
+export const addTutorFeedback = async (sessionId, tutorId, { tutorOverallScore, tutorOverallFeedback, answersFeedback }) => {
   const session = await InterviewSession.findById(sessionId);
   if (!session) throw new AppError('Session not found', 404);
   
+  const authorizedRoadmap = await LearningProgress.findOne({
+    user: session.userId,
+    tutorsTracking: tutorId
+  });
+
+  if (!authorizedRoadmap) {
+    throw new AppError("You are not authorized to add feedback to this session", 403);
+  }
+
   if (tutorOverallScore !== undefined) session.tutorOverallScore = tutorOverallScore;
   if (tutorOverallFeedback !== undefined) session.tutorOverallFeedback = tutorOverallFeedback;
   
@@ -410,5 +474,26 @@ export const addTutorFeedback = async (sessionId, { tutorOverallScore, tutorOver
   }
   
   await session.save();
+
+  // Create persistent notification in DB for student
+  const notif = await Notification.create({
+    userId: session.userId,
+    type: "interview",
+    title: "Interview Feedback Submitted",
+    message: `Tutor has submitted feedback for your "${session.topic}" interview.`,
+    metadata: {
+      relatedId: session._id,
+      relatedModel: "Interview",
+      actionUrl: `/mock-interview/${session._id}/results`,
+    },
+  });
+
+  // Emit real-time socket notification to the student
+  const io = getIO();
+  if (io) {
+    const roomName = `user_${session.userId}`;
+    io.to(roomName).emit("new-notification", notif);
+  }
+
   return session;
 };

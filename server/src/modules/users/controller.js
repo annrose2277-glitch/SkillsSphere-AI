@@ -14,6 +14,7 @@ import fs from "fs";
 import path from "path";
 import { buildAvatarFileUrl } from "../../utils/uploadPaths.js";
 import { cascadeDeleteUser } from "../../utils/cascadeDelete.js";
+import { safeDeleteAvatarByUrl } from "../../utils/fileUtils.js";
 
 /**
  * @desc    Update user profile details
@@ -21,15 +22,30 @@ import { cascadeDeleteUser } from "../../utils/cascadeDelete.js";
  * @access  Private
  */
 export const updateProfile = asyncHandler(async (req, res, next) => {
-  const { name } = req.body;
+  const { name, company, companyWebsite } = req.body;
 
   if (!name || name.trim().length < 2) {
     return next(new AppError("Please provide a valid name (at least 2 characters)", 400));
   }
 
+  const updateData = { name: name.trim() };
+
+  if (req.user.role === "recruiter") {
+    if (company !== undefined) {
+      updateData.company = company ? company.trim() : null;
+    }
+    if (companyWebsite !== undefined) {
+      let web = companyWebsite ? companyWebsite.trim() : null;
+      if (web && !/^https?:\/\//i.test(web)) {
+        web = `https://${web}`;
+      }
+      updateData.companyWebsite = web;
+    }
+  }
+
   const updatedUser = await User.findByIdAndUpdate(
     req.user._id,
-    { name: name.trim() },
+    updateData,
     { new: true, runValidators: true }
   ).select("-password -__v");
 
@@ -56,15 +72,7 @@ export const uploadAvatar = asyncHandler(async (req, res, next) => {
 
   // Delete the old avatar from disk if it was a local upload
   const currentUser = await User.findById(req.user._id);
-  if (
-    currentUser?.profilePic &&
-    (currentUser.profilePic.includes("/uploads/avatars/") ||
-      currentUser.profilePic.includes("/api/files/avatars/"))
-  ) {
-    const oldFilename = path.basename(currentUser.profilePic.split("?")[0]);
-    const oldPath = path.join(process.cwd(), "src", "uploads", "avatars", oldFilename);
-    if (fs.existsSync(oldPath)) fs.unlinkSync(oldPath);
-  }
+  safeDeleteAvatarByUrl(currentUser?.profilePic);
 
   const baseUrl = process.env.BACKEND_URL || `http://localhost:${process.env.PORT || 5000}`;
   const profilePic = `${baseUrl}${buildAvatarFileUrl(req.file.filename)}`;
@@ -96,15 +104,7 @@ export const removeAvatar = asyncHandler(async (req, res, next) => {
   if (!user) return next(new AppError("User not found", 404));
 
   // Delete file from disk if it's a local upload
-  if (
-    user.profilePic &&
-    (user.profilePic.includes("/uploads/avatars/") ||
-      user.profilePic.includes("/api/files/avatars/"))
-  ) {
-    const filename = path.basename(user.profilePic);
-    const filePath = path.join(process.cwd(), "src", "uploads", "avatars", filename);
-    if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
-  }
+  safeDeleteAvatarByUrl(user.profilePic);
 
   user.profilePic = null;
   await user.save();

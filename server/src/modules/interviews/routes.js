@@ -1,6 +1,7 @@
 import express from "express";
 import multer from "multer";
 import { authorizeRoles, protect } from "../../middleware/authMiddleware.js";
+import cacheMiddleware from "../../middleware/cacheMiddleware.js";
 import {
   startInterview,
   getSession,
@@ -14,6 +15,7 @@ import {
   getTutorSession,
   submitTutorFeedback,
 } from "./controller.js";
+import { aiActionLimiter } from "../../middleware/rateLimiter.js";
 
 const router = express.Router();
 
@@ -56,7 +58,7 @@ router.use(protect);
  *       200:
  *         description: List of topics
  */
-router.get("/topics", getAvailableTopics);
+router.get("/topics", cacheMiddleware("topics", 600), getAvailableTopics);
 
 // AI service status (for debugging)
 router.get("/ai-status", getAIServiceStatus);
@@ -87,7 +89,7 @@ router.get("/ai-status", getAIServiceStatus);
  *       201:
  *         description: Session started
  */
-router.post("/start", startInterview);
+router.post("/start", aiActionLimiter, startInterview);
 
 /**
  * @openapi
@@ -104,7 +106,7 @@ router.post("/start", startInterview);
 router.get("/history", getInterviewHistory);
 
 router.get("/:id", getSession);
-router.post("/:id/answer", upload.single("audio"), submitAnswer);
+router.post("/:id/answer", aiActionLimiter, upload.single("audio"), submitAnswer);
 router.post("/:id/complete", completeInterview);
 
 /**

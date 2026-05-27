@@ -5,6 +5,7 @@ import { fetchCurrentUser } from "../features/auth/authSlice";
 import ChatWidget from "../modules/ai-assistant/components/ChatWidget";
 import LandingPage from "../modules/landing/LandingPage";
 import DashboardPage from "../modules/dashboard/DashboardPage";
+import CoverLetterHistoryPage from "../modules/dashboard/pages/CoverLetterHistoryPage";
 import ResumeAnalyzerPage from "../modules/resume-analyzer/pages/ResumeAnalyzerPage";
 import JobMatcherPage from "../modules/job-matcher/pages/JobMatcherPage";
 import ComponentDemo from "../modules/auth/components/ComponentDemo";
@@ -33,8 +34,8 @@ import InterviewHistory from "../modules/mock-interview/pages/InterviewHistory";
 import TutorInterviewConsole from "../modules/mock-interview/pages/TutorInterviewConsole";
 import TutorInterviewsList from "../modules/mock-interview/pages/TutorInterviewsList";
 import TutorAnalyticsDashboard from "../modules/analytics/TutorAnalyticsDashboard";
+import NotificationsPage from "../modules/notifications/pages/NotificationsPage";
 import ProtectedRoute from "../shared/components/ProtectedRoute";
-import ThemeToggle from "../shared/components/ThemeToggle";
 import SocketNotificationListener from "../shared/components/SocketNotificationListener";
 function App() {
   const dispatch = useDispatch();
@@ -47,18 +48,18 @@ function App() {
   }, [dispatch, token]);
 
   return (
-    <div className="min-h-screen bg-white text-black dark:bg-dark-bg dark:text-text-main transition-colors duration-300">
+    <div className="min-h-screen bg-[var(--background)] text-[var(--text-main)] transition-colors duration-300">
       <SocketNotificationListener />
-      
+
       <Routes>
         <Route path="/" element={<LandingPage />} />
-        <Route 
-          path="/job-matcher" 
+        <Route
+          path="/job-matcher"
           element={
             <ProtectedRoute requiredRole="student">
               <JobMatcherPage />
             </ProtectedRoute>
-          } 
+          }
         />
         <Route
           path="/my-applications"
@@ -68,20 +69,39 @@ function App() {
             </ProtectedRoute>
           }
         />
-        {import.meta.env.DEV && <Route path="/demo" element={<ComponentDemo />} />}
-        <Route 
-          path="/resume-analyzer" 
+        {import.meta.env.DEV && (
+          <Route path="/demo" element={<ComponentDemo />} />
+        )}
+        <Route
+          path="/resume-analyzer"
           element={
             <ProtectedRoute requiredRole="student">
               <ResumeAnalyzerPage />
             </ProtectedRoute>
-          } 
+          }
+        />
+        <Route
+          path="/cover-letters"
+          element={
+            <ProtectedRoute requiredRole="student">
+              <CoverLetterHistoryPage />
+            </ProtectedRoute>
+          }
         />
         <Route
           path="/dashboard"
           element={
             <ProtectedRoute>
               <DashboardPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/notifications"
+          element={
+            <ProtectedRoute>
+              {" "}
+              <NotificationsPage />
             </ProtectedRoute>
           }
         />
@@ -147,7 +167,14 @@ function App() {
             </ProtectedRoute>
           }
         />
-        <Route path="/profile" element={<ProfilePage />} />
+        <Route
+          path="/profile"
+          element={
+            <ProtectedRoute>
+              <ProfilePage />
+            </ProtectedRoute>
+          }
+        />
 
         {/* Tutor Analytics */}
         <Route
@@ -158,7 +185,7 @@ function App() {
             </ProtectedRoute>
           }
         />
-        
+
         {/* Tutor Roadmap Lobby */}
         <Route
           path="/tutor/roadmaps"
@@ -168,7 +195,7 @@ function App() {
             </ProtectedRoute>
           }
         />
-        
+
         {/* Live Classrooms */}
         <Route
           path="/classrooms"
@@ -220,7 +247,7 @@ function App() {
             </ProtectedRoute>
           }
         />
-        
+
         {/* Tutor Interview Console */}
         <Route
           path="/tutor/interviews"

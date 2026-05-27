@@ -2,9 +2,15 @@
   "name": "skillsphere-ai-root",
   "version": "1.0.0",
   "private": true,
+  "workspaces": [
+    "client",
+    "server",
+    "ai-ml"
+  ],
   "type": "module",
   "scripts": {
     "install-all": "node scripts/install-all.js",
+    "predev": "node scripts/verify-python-env.js",
     "dev": "node scripts/dev-all.js",
     "dev:web": "concurrently \"cd client && npm run dev\" \"cd server && npm run dev\"",
     "quickstart": "node scripts/quickstart.js",

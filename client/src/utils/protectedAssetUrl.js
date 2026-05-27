@@ -37,3 +37,18 @@ export const resolveProtectedFilePath = (url) => {
 
   return apiPath;
 };
+
+/**
+ * Helper to return a URL suitable for use in <img src=""> for protected files.
+ * If the input is already a public URL, it is returned unchanged. For protected
+ * server paths ("/api/files/..."), this returns the path without any token in
+ * the URL. Components needing authenticated file access should use the signed
+ * URL service (getSignedFileUrl) for <img> tags, or the Authorization header
+ * for fetch-based requests.
+ */
+export const getProtectedAssetUrl = (url) => {
+  if (!url) return null;
+  const apiPath = resolveProtectedFilePath(url);
+  if (!apiPath) return url;
+  return apiPath;
+};

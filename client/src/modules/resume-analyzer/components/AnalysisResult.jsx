@@ -11,18 +11,34 @@ import {
   ExternalLink,
   Layout,
   MessageSquare,
-  Globe
+  Globe,
+  PenTool,
+  Loader2
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import Button from "../../../shared/landing/Button";
 import SkillGapVenn from "./SkillGapVenn";
+import CoverLetterModal from "../../../shared/components/CoverLetterModal";
+import { generateCoverLetter } from "../services/resumeService";
+import html2pdf from "html2pdf.js";
+import AnalysisReportPDF from "./AnalysisReportPDF";
+import { useToast } from "../../../shared/components";
 
-const AnalysisResult = ({ result, file, onReset }) => {
+const AnalysisResult = ({ result, file, jobDescription, onReset }) => {
   const score = result?.score || 0;
   const isJDProvided = result.isJDProvided;
   const suggestions = (result.gapAnalysis?.suggestions || []).slice(0, 8);
 
   const [previewUrl, setPreviewUrl] = useState(null);
+  
+  // Cover Letter States
+  const [isGeneratingCL, setIsGeneratingCL] = useState(false);
+  const [clModalOpen, setClModalOpen] = useState(false);
+  const [clText, setClText] = useState("");
+  const [clError, setClError] = useState("");
+
+  const { success, error: showError } = useToast();
+  const [isExportingPDF, setIsExportingPDF] = useState(false);
 
   useEffect(() => {
     if (
@@ -67,6 +83,76 @@ const AnalysisResult = ({ result, file, onReset }) => {
 
   // --- Action Words ---
   const actionWords = result.readabilityMatch?.relevantVerbs || ["Spearheaded", "Orchestrated", "Transformed", "Optimized", "Architected", "Launched", "Pioneered", "Revitalized"];
+
+  const handleExportPDF = async () => {
+    setIsExportingPDF(true);
+    try {
+      const element = document.getElementById("analysis-report-pdf");
+      if (!element) {
+        throw new Error("Report element not found in DOM.");
+      }
+
+      const fileNameClean = file?.name 
+        ? file.name.replace(/\.[^/.]+$/, "") 
+        : "resume";
+
+      const opt = {
+        margin: [0.4, 0.4, 0.4, 0.4],
+        filename: `${fileNameClean}_analysis_report.pdf`,
+        image: { type: "jpeg", quality: 0.98 },
+        html2canvas: { scale: 2, useCORS: true, letterRendering: true, scrollX: 0, scrollY: 0 },
+        jsPDF: { unit: "in", format: "letter", orientation: "portrait" }
+      };
+
+      await html2pdf().set(opt).from(element).save();
+      success("Report exported to PDF successfully.");
+    } catch (err) {
+      console.error("PDF Export Error:", err);
+      showError(err.message || "Failed to export PDF report.");
+    } finally {
+      setIsExportingPDF(false);
+    }
+  };
+
+  const handleGenerateCoverLetter = async () => {
+    try {
+      if (!jobDescription || !jobDescription.trim()) {
+        throw new Error("A Job Description is required to generate a targeted Cover Letter. Please reset and paste one in.");
+      }
+
+      setIsGeneratingCL(true);
+      setClError("");
+      
+      const response = await generateCoverLetter(result.resumeId, jobDescription);
+      
+      if (response && response.coverLetter && response.coverLetter.generatedText) {
+        setClText(response.coverLetter.generatedText);
+        setClModalOpen(true);
+      } else {
+        throw new Error("Invalid response format from server.");
+      }
+    } catch (err) {
+      setClError(err.message || "Failed to generate cover letter.");
+      // Auto clear error after 5 seconds
+      setTimeout(() => setClError(""), 5000);
+    } finally {
+      setIsGeneratingCL(false);
+    }
+  };
+
+  const handleRegenerate = async (tone, language) => {
+    try {
+      const response = await generateCoverLetter(result.resumeId, jobDescription, tone, language);
+      if (response && response.coverLetter && response.coverLetter.generatedText) {
+        setClText(response.coverLetter.generatedText);
+        return response.coverLetter.generatedText;
+      }
+      throw new Error("Invalid response format from server.");
+    } catch (err) {
+      alert("Failed to regenerate: " + err.message);
+      return null;
+    }
+  };
 
   return (
     <div className="w-full space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -356,14 +442,93 @@ const AnalysisResult = ({ result, file, onReset }) => {
         </div>
       </div>
 
-      {/* New Scan Button */}
-      <div className="flex justify-center pt-8">
-        <button onClick={onReset} className="group flex flex-col items-center gap-3">
+      {/* Bottom Actions */}
+      <div className="flex flex-wrap justify-center gap-6 pt-8">
+        
+        {/* Generate Cover Letter Button */}
+        <div className="flex flex-col items-center gap-2">
+          <button 
+            onClick={handleGenerateCoverLetter} 
+            disabled={isGeneratingCL}
+            className={`group flex items-center justify-center gap-3 px-6 py-4 rounded-2xl border transition-all shadow-xl
+              ${isGeneratingCL 
+                ? 'bg-surface/50 border-border cursor-not-allowed' 
+                : 'bg-primary/10 border-primary/30 hover:border-primary hover:bg-primary/20 hover:-translate-y-1'
+              }`}
+          >
+            {isGeneratingCL ? (
+              <Loader2 className="w-6 h-6 text-primary animate-spin" />
+            ) : (
+              <PenTool className="w-6 h-6 text-primary group-hover:scale-110 transition-transform" />
+            )}
+            <div className="text-left">
+              <span className="block text-sm font-bold text-text-main group-hover:text-primary transition-colors">
+                {isGeneratingCL ? "Generating AI Draft..." : "Write Cover Letter"}
+              </span>
+              <span className="block text-[10px] uppercase tracking-widest text-text-muted mt-0.5">
+                Powered by Gemini
+              </span>
+            </div>
+          </button>
+          {clError && (
+            <span className="text-xs font-medium text-red-400 animate-in fade-in slide-in-from-top-1">
+              {clError}
+            </span>
+          )}
+        </div>
+
+        {/* Export PDF Report Button */}
+        <div className="flex flex-col items-center gap-2">
+          <button 
+            onClick={handleExportPDF} 
+            disabled={isExportingPDF}
+            className={`group flex items-center justify-center gap-3 px-6 py-4 rounded-2xl border transition-all shadow-xl
+              ${isExportingPDF 
+                ? 'bg-surface/50 border-border cursor-not-allowed' 
+                : 'bg-secondary/10 border-secondary/30 hover:border-secondary hover:bg-secondary/20 hover:-translate-y-1'
+              }`}
+          >
+            {isExportingPDF ? (
+              <Loader2 className="w-6 h-6 text-secondary animate-spin" />
+            ) : (
+              <Download className="w-6 h-6 text-secondary group-hover:scale-110 transition-transform" />
+            )}
+            <div className="text-left">
+              <span className="block text-sm font-bold text-text-main group-hover:text-secondary transition-colors">
+                {isExportingPDF ? "Exporting PDF..." : "Export PDF Report"}
+              </span>
+              <span className="block text-[10px] uppercase tracking-widest text-text-muted mt-0.5">
+                Download Feedback
+              </span>
+            </div>
+          </button>
+        </div>
+
+        {/* New Scan Button */}
+        <button onClick={onReset} className="group flex flex-col items-center gap-3 mt-1">
           <div className="p-4 bg-surface border border-border rounded-2xl group-hover:border-primary/50 group-hover:bg-primary/5 transition-all shadow-xl">
             <Eye className="w-6 h-6 text-text-muted group-hover:text-primary transition-colors" />
           </div>
           <span className="text-xs font-black uppercase tracking-[0.3em] text-text-muted group-hover:text-primary">New Scan</span>
         </button>
+      </div>
+
+      <CoverLetterModal 
+        isOpen={clModalOpen} 
+        onClose={() => setClModalOpen(false)} 
+        initialText={clText} 
+        onRegenerate={handleRegenerate}
+      />
+
+      {/* Off-screen PDF Template Container */}
+      <div className="absolute top-0 left-0 w-px h-px overflow-hidden pointer-events-none bg-transparent">
+        <div 
+          id="analysis-report-pdf" 
+          className="w-[800px] bg-white text-slate-800"
+          style={{ width: "800px", backgroundColor: "#ffffff" }}
+        >
+          <AnalysisReportPDF result={result} fileName={file?.name} />
+        </div>
       </div>
     </div>
   );

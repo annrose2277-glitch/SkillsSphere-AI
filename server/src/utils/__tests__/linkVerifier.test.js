@@ -1,12 +1,36 @@
 import assert from "node:assert/strict";
 import test, { mock } from "node:test";
 import axios from "axios";
+import dns from "dns";
 import { verifyLink, verifyLinks } from "../linkVerifier.js";
+
+// Setup DNS mock to resolve to a safe IP by default
+mock.method(dns.promises, "resolve", async () => ["8.8.8.8"]);
 
 test("verifyLink - returns false if url is missing", async () => {
   const result = await verifyLink(null);
   assert.equal(result.isValid, false);
   assert.equal(result.status, null);
+});
+
+test("verifyLink - blocks SSRF via localhost IP", async () => {
+  mock.method(dns.promises, "resolve", async () => ["127.0.0.1"]);
+  const result = await verifyLink("http://localhost:5000");
+  assert.equal(result.isValid, false);
+  assert.equal(result.error, "Blocked SSRF attempt (Internal IP)");
+});
+
+test("verifyLink - blocks SSRF via cloud metadata IP", async () => {
+  mock.method(dns.promises, "resolve", async () => ["169.254.169.254"]);
+  const result = await verifyLink("http://169.254.169.254/latest/meta-data/");
+  assert.equal(result.isValid, false);
+  assert.equal(result.error, "Blocked SSRF attempt (Internal IP)");
+});
+
+test("verifyLink - blocks SSRF via file protocol", async () => {
+  const result = await verifyLink("file:///etc/passwd");
+  assert.equal(result.isValid, false);
+  assert.equal(result.error, "Unsupported protocol");
 });
 
 test("verifyLink - handles successful link verification", async () => {
@@ -16,6 +40,7 @@ test("verifyLink - handles successful link verification", async () => {
   });
 
   const result = await verifyLink("https://google.com");
+  assert.equal(result.url, "https://google.com");
   assert.equal(result.isValid, true);
   assert.equal(result.status, 200);
 
@@ -68,4 +93,25 @@ test("verifyLinks - verifies multiple links in parallel", async () => {
   assert.equal(results[1].isValid, true);
 
   mock.restoreAll();
+});
+
+test("verifyLink - blocks access to private IPs (SSRF protection)", async () => {
+  const result = await verifyLink("http://192.168.1.1/admin");
+  assert.equal(result.isValid, false);
+  assert.equal(result.status, 403);
+  assert.equal(result.error, "Access to private IP is forbidden");
+});
+
+test("verifyLink - blocks access to AWS metadata endpoint (SSRF protection)", async () => {
+  const result = await verifyLink("http://169.254.169.254/latest/meta-data");
+  assert.equal(result.isValid, false);
+  assert.equal(result.status, 403);
+  assert.equal(result.error, "Access to private IP is forbidden");
+});
+
+test("verifyLink - blocks access to localhost (SSRF protection)", async () => {
+  const result = await verifyLink("http://127.0.0.1:5000/api");
+  assert.equal(result.isValid, false);
+  assert.equal(result.status, 403);
+  assert.equal(result.error, "Access to private IP is forbidden");
 });

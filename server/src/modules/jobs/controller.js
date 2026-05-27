@@ -16,6 +16,43 @@ import {
 } from "./service.js";
 import AppError from "../../utils/AppError.js";
 import asyncHandler from "../../utils/asyncHandler.js";
+import { invalidateCacheByPrefix } from "../../utils/cacheHelpers.js";
+import redisClient from "../../config/redis.js";
+
+/**
+ * Sanitizes a string to prevent CSV Injection (Formula Injection).
+ * If the string starts with a dangerous character (=, +, -, @, \t, \r),
+ * it prepends a single quote to force the spreadsheet application to treat it as text.
+ * It also escapes double quotes and wraps the result in quotes.
+ * 
+ * @param {string} str - The string to sanitize
+ * @returns {string} The sanitized, quote-wrapped string ready for CSV insertion
+ */
+const sanitizeCSVField = (str) => {
+  if (typeof str !== "string") str = String(str || "");
+  
+  // Clean newlines
+  let cleaned = str.replace(/\r?\n|\r/g, " ");
+
+  // Escape double quotes
+  cleaned = cleaned.replace(/"/g, '""');
+
+  // Prevent formula injection by neutralizing dangerous starting characters
+  if (/^[=+\-@\t\r]/.test(cleaned)) {
+    cleaned = "'" + cleaned;
+  }
+
+  return `"${cleaned}"`;
+};
+
+const invalidateAnalyticsCache = (recruiterId) => {
+  if (!redisClient || !redisClient.isReady) return;
+  try {
+    redisClient.del(["global_skill_trends", `recruiter_analytics_${recruiterId}`]);
+  } catch {
+    // Redis unavailable — skip invalidation
+  }
+};
 
 /**
  * @desc    Create a new job posting
@@ -86,6 +123,10 @@ export const createJobPosting = asyncHandler(async (req, res) => {
     recruiter: req.user._id,
   });
 
+  // Invalidate jobs cache
+  await invalidateCacheByPrefix("jobs");
+  invalidateAnalyticsCache(req.user._id.toString());
+
   res.status(201).json({
     success: true,
     job: jobPosting,
@@ -148,6 +189,7 @@ export const getJobPostingById = asyncHandler(async (req, res) => {
  */
 export const updateJobPosting = asyncHandler(async (req, res) => {
   const updatedJob = await updateJobService(req.params.id, req.body, req.user._id);
+  invalidateAnalyticsCache(req.user._id.toString());
   res.status(200).json({
     success: true,
     job: updatedJob,
@@ -161,6 +203,7 @@ export const updateJobPosting = asyncHandler(async (req, res) => {
  */
 export const deleteJobPosting = asyncHandler(async (req, res) => {
   await deleteJobService(req.params.id, req.user._id);
+  invalidateAnalyticsCache(req.user._id.toString());
   res.status(200).json({
     success: true,
     message: "Job deleted successfully",
@@ -253,13 +296,80 @@ export const applyToJobPosting = asyncHandler(async (req, res) => {
  * @access  Private (Recruiters only)
  */
 export const getApplications = asyncHandler(async (req, res) => {
-  const applications = await getJobAppsService(req.params.id, req.user._id);
+  const result = await getJobAppsService(req.params.id, req.user._id, {
+    ...req.query,
+    page: Math.max(1, parseInt(req.query.page) || 1),
+    limit: Math.min(100, Math.max(1, parseInt(req.query.limit) || 20))
+  });
 
   res.status(200).json({
     success: true,
-    count: applications.length,
-    applications,
+    count: result.applications.length,
+    totalCount: result.totalCount,
+    totalPages: result.totalPages,
+    currentPage: result.currentPage,
+    applications: result.applications,
   });
+});
+
+/**
+ * @desc    Export all applications for a job posting as CSV
+ * @route   GET /api/jobs/:id/applications/export
+ * @access  Private (Recruiters only)
+ */
+export const exportApplicationsToCSV = asyncHandler(async (req, res) => {
+  const { status, sortBy } = req.query || {};
+  const applications = await getJobAppsService(req.params.id, req.user._id, status, sortBy);
+
+  // Construct CSV headers
+  const headers = [
+    "Candidate Name",
+    "Candidate Email",
+    "Match Score",
+    "Match Category",
+    "Status",
+    "Apply Date",
+    "Resume Link",
+    "Cover Note"
+  ];
+
+  const toCSVField = (value) => {
+    if (value === null || value === undefined || value === "") return '"N/A"';
+    let str = String(value);
+    
+    // Prevent CSV Injection (Macro Injection)
+    if (/^[=+\-@\t\r]/.test(str)) {
+      str = "'" + str;
+    }
+    
+    // Escape quotes and replace newlines with space
+    str = str.replace(/"/g, '""').replace(/\r?\n|\r/g, " ");
+    
+    return `"${str}"`;
+  };
+
+  // Convert applications to CSV rows
+  const rows = applications.map(app => {
+    return [
+      toCSVField(app.applicant?.name),
+      toCSVField(app.applicant?.email),
+      toCSVField(app.aiMatchScore !== null && app.aiMatchScore !== undefined ? `${app.aiMatchScore}%` : null),
+      toCSVField(app.matchCategory),
+      toCSVField(app.status || "pending"),
+      toCSVField(new Date(app.createdAt).toLocaleDateString()),
+      toCSVField(app.resumeLink),
+      toCSVField(app.coverNote)
+    ].join(",");
+  });
+
+  const csvContent = [headers.join(","), ...rows].join("\n");
+
+  res.setHeader("Content-Type", "text/csv");
+  res.setHeader(
+    "Content-Disposition",
+    `attachment; filename=job-${req.params.id}-applicants.csv`
+  );
+  res.status(200).send(csvContent);
 });
 
 /**

@@ -1,7 +1,8 @@
 import React, { useEffect, useRef } from "react";
-import { useSelector } from "react-redux";
+import { useSelector, useDispatch } from "react-redux";
 import { io } from "socket.io-client";
 import { useToast } from "./toast/ToastProvider";
+import { addLiveNotification, getUnreadCount } from "../../features/notifications/notificationsSlice";
 
 const SOCKET_URL = ""; // Connects to the same origin as the frontend (proxied to 5000)
 
@@ -13,6 +14,7 @@ const SocketNotificationListener = () => {
   const { user, token } = useSelector((state) => state.auth);
   const toast = useToast();
   const socketRef = useRef(null);
+  const dispatch = useDispatch();
 
   useEffect(() => {
     const userId = user?._id || user?.id;
@@ -56,6 +58,25 @@ const SocketNotificationListener = () => {
           toast.error(message, title);
         } else {
           toast.success(message, title);
+        }
+
+        // Fetch updated unread count from the DB to sync the unread badge
+        dispatch(getUnreadCount());
+      });
+
+      socketRef.current.on("new-notification", (notif) => {
+        // Dispatch to global notifications Redux state in real-time
+        dispatch(addLiveNotification(notif));
+
+        // Skip toast if it is a job application update, since it is handled by the dedicated application-status-updated socket listener
+        if (notif.type === "application" || notif.type === "application-status-updated") {
+          return;
+        }
+
+        if (notif.type === "skill_gap_alert") {
+          toast.error(notif.message, notif.title || "Skill Gap Alert");
+        } else {
+          toast.success(notif.message, notif.title || "Notification");
         }
       });
 
