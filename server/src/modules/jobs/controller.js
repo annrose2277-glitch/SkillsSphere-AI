@@ -60,6 +60,7 @@ const invalidateAnalyticsCache = (recruiterId) => {
  * @access  Private (Recruiters only)
  */
 export const createJobPosting = asyncHandler(async (req, res) => {
+  console.log("DEBUG: createJobPosting called");
   const {
     title,
     description,
@@ -102,11 +103,14 @@ export const createJobPosting = asyncHandler(async (req, res) => {
   }
 
   if (Object.keys(validationErrors).length > 0) {
+    console.log("DEBUG: Validation failed", validationErrors);
     const error = new AppError("Please provide all required fields", 400);
     error.errors = validationErrors;
     throw error;
   }
 
+  console.log("DEBUG: JobPosting.create is mocked:", JobPosting.create.mock !== undefined);
+  
   // Create job posting with recruiter from authenticated user
   const jobPosting = await JobPosting.create({
     title,
@@ -122,6 +126,9 @@ export const createJobPosting = asyncHandler(async (req, res) => {
     keywords,
     recruiter: req.user._id,
   });
+
+  console.log("DEBUG: jobPosting created:", !!jobPosting);
+  console.log("DEBUG: JobPosting.create calls:", JobPosting.create.mock?.calls?.length);
 
   // Invalidate jobs cache
   await invalidateCacheByPrefix("jobs");
@@ -319,7 +326,8 @@ export const getApplications = asyncHandler(async (req, res) => {
  */
 export const exportApplicationsToCSV = asyncHandler(async (req, res) => {
   const { status, sortBy } = req.query || {};
-  const applications = await getJobAppsService(req.params.id, req.user._id, status, sortBy);
+  const result = await getJobAppsService(req.params.id, req.user._id, status, sortBy);
+  const applications = Array.isArray(result) ? result : (result.applications || []);
 
   // Construct CSV headers
   const headers = [
@@ -402,7 +410,7 @@ export const getMyApplicationsDetailed = asyncHandler(async (req, res) => {
     count: result.applications.length,
     totalCount: result.totalCount,
     totalPages: result.totalPages,
-    currentPage: result.currentPage,
+    currentPage: page,
     applications: result.applications,
   });
 });

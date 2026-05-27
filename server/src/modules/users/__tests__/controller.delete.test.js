@@ -1,7 +1,7 @@
 import { describe, it, beforeEach, afterEach, mock } from "node:test";
 import assert from "node:assert/strict";
 import mongoose from "mongoose";
-import { deleteProfile } from "../controller.delete.js";
+import { deleteProfile } from "../controller.js";
 import User from "../../../database/models/User.js";
 import Resume from "../../../database/models/Resume.js";
 import MatchResult from "../../../database/models/MatchResult.js";

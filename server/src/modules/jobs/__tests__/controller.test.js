@@ -42,15 +42,21 @@ describe("Job Controller", () => {
       const body = validBody();
       req.body = body;
       const mockCreatedJob = { _id: "job123", ...body, recruiter: req.user._id };
-      mock.method(JobPosting, "create", async () => mockCreatedJob);
+      
+      const originalCreate = JobPosting.create;
+      JobPosting.create = mock.fn(async () => mockCreatedJob);
 
-      await createJobPosting(req, res, next);
+      try {
+        await createJobPosting(req, res, next);
 
-      assert.equal(JobPosting.create.mock.calls.length, 1);
-      assert.equal(res.status.mock.calls.length, 1);
-      assert.equal(res.status.mock.calls[0].arguments[0], 201);
-      assert.equal(res.json.mock.calls.length, 1);
-      assert.equal(res.json.mock.calls[0].arguments[0].success, true);
+        assert.equal(JobPosting.create.mock.calls.length, 1);
+        assert.equal(res.status.mock.calls.length, 1);
+        assert.equal(res.status.mock.calls[0].arguments[0], 201);
+        assert.equal(res.json.mock.calls.length, 1);
+        assert.equal(res.json.mock.calls[0].arguments[0].success, true);
+      } finally {
+        JobPosting.create = originalCreate;
+      }
     });
   });
 
@@ -76,7 +82,8 @@ describe("Job Controller", () => {
         }
       ];
       
-      mock.method(JobPosting, "findById", async () => mockJob);
+      const originalFindById = JobPosting.findById;
+      JobPosting.findById = mock.fn(async () => mockJob);
       
       const mockQuery = {
         populate: mock.fn(function() { return this; }),
@@ -85,14 +92,27 @@ describe("Job Controller", () => {
         limit: mock.fn(function() { return this; }),
         then: mock.fn(function(onFulfilled) { onFulfilled(mockApplications); }),
       };
-      mock.method(JobApplication, "find", () => mockQuery);
-      mock.method(JobApplication, "countDocuments", async () => 1);
+      const originalFind = JobApplication.find;
+      JobApplication.find = mock.fn(() => mockQuery);
+      const originalCount = JobApplication.countDocuments;
+      JobApplication.countDocuments = mock.fn(async () => 1);
       
-      await exportApplicationsToCSV(req, res, next);
+      try {
+        await exportApplicationsToCSV(req, res, next);
 
-      assert.equal(res.status.mock.calls[0].arguments[0], 200);
-      assert.equal(res.setHeader.mock.calls.some(call => call.arguments[0] === "Content-Type" && call.arguments[1] === "text/csv"), true);
-      assert.equal(res.send.mock.calls.length, 1);
+        if (next.mock.calls.length > 0) {
+          throw next.mock.calls[0].arguments[0];
+        }
+
+        assert.equal(res.status.mock.calls.length, 1);
+        assert.equal(res.status.mock.calls[0].arguments[0], 200);
+        assert.equal(res.setHeader.mock.calls.some(call => call.arguments[0] === "Content-Type" && call.arguments[1] === "text/csv"), true);
+        assert.equal(res.send.mock.calls.length, 1);
+      } finally {
+        JobPosting.findById = originalFindById;
+        JobApplication.find = originalFind;
+        JobApplication.countDocuments = originalCount;
+      }
     });
   });
 });
